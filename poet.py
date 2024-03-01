@@ -1,51 +1,80 @@
-
 from sqlalchemy import and_
-import pandas as pd
 import math
+from database import destroy_session, commit_and_destroy_session, initialize_session
+
 
 def process_phone_number(phone_number):
-    if math.isnan(phone_number):
-        return "0"
-    else:
-        return str(phone_number)
+    return "0" if math.isnan(phone_number) else str(phone_number)
+
+
+def get_existing_poet(db_session, poet):
+    from entities import Poet
+    return (
+        db_session.query(Poet)
+        .filter(
+            and_(
+                Poet.legalLastName == poet['legalLastName'],
+                Poet.legalFirstName == poet['legalFirstName'],
+            )
+        )
+        .first()
+    )
+
+
+def update_poet(existing_poet, new_poet):
+    from entities import Poet
+    new_poet = Poet(**new_poet)
+    print("Updating the poet.......")
+    if new_poet.poetImage:
+        existing_poet.poetImage = new_poet.poetImage
+    if new_poet.address:
+        existing_poet.address = new_poet.address
+    if new_poet.poetBiography:
+        existing_poet.poetBiography = new_poet.poetBiography
+    if new_poet.creditedFirstName:
+        existing_poet.creditedFirstName = new_poet.creditedFirstName
+    if new_poet.creditedLastName:
+        existing_poet.creditedLastName = new_poet.creditedLastName
+    if new_poet.email:
+        existing_poet.email = new_poet.email
+    if new_poet.state:
+        existing_poet.state = new_poet.state
+    if new_poet.status:
+        existing_poet.status = new_poet.status
+    if new_poet.city:
+        existing_poet.city = new_poet.city
+    if new_poet.isLaureate:
+        existing_poet.isLaureate = new_poet.isLaureate
+    if new_poet.phoneNum:
+        existing_poet.phoneNum = new_poet.phoneNum
+    if new_poet.photoCredit:
+        existing_poet.photoCredit = new_poet.photoCredit
+    if new_poet.website:
+        existing_poet.website = new_poet.website
+    if new_poet.zipCode:
+        existing_poet.zipCode = new_poet.zipCode
+
+
+def add_new_poet(db_session, poet):
+    from entities import Poet
+    print("adding new poet......")
+    db_session.add(Poet(**poet))
+
 
 def poets_handler(poets=None):
     if poets is None:
-        return 
+        return
     try:
-        from database import Session
-        Session.create_session()
-        from entities import Poet
+        db_session = initialize_session()
 
-        db_session = Session.session.get_session()
-
-        for index, poet in poets.iterrows():  # Iterate over the rows of the DataFrame
-            print('poet', poet)
-            check_exists = db_session.query(Poet).filter(
-                and_(
-                    Poet.firstName == poet['First Name'],
-                    Poet.middleName == poet['middleName'],
-                    Poet.lastName == poet['lastName']
-                )
-            ).first()
-            if not check_exists:
-                print("Create poet ", poet)
-                pt = Poet(
-                    first_name=poet['firstName'], middle_name=poet['middleName'], last_name=poet['lastName'], 
-                    website=poet['website'], address=poet['address'], email=poet['email'], 
-                    phone_num=process_phone_number(poet['phoneNumber']),
-                    city=poet['city'], status=poet['status'], zip_code=poet['zipCode'], 
-                    pic=poet['pic'], is_laureate=poet['isLaureate'] == 'Yes' if True else False, photo_credit=poet['photoCredit'],
-                    state=poet['state']
-                )
-                db_session.add(pt)
+        for index, poet in poets.iterrows():
+            if existing_poet := get_existing_poet(db_session, poet):
+                update_poet(existing_poet, poet)
             else:
-                print("Already Exists data")
-        
-        db_session.commit()
-        Session.session.destroy_session()
+                add_new_poet(db_session, poet)
+
+        commit_and_destroy_session(db_session)
 
     except Exception as e:
         print(f"Error: {e}")
-        Session.session.destroy_session()  # Destroy the session in case of error too
-
+        destroy_session()  # Destroy the session in case of an error too

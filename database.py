@@ -1,4 +1,3 @@
-        
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -7,7 +6,8 @@ import os
 # DATABASE_URI = 'postgresql://postgres:postgres@telepoem-database.c5yke2c0u4zj.us-east-1.rds.amazonaws.com:5432/postgres'
 DATABASE_URI = os.getenv("DATABASE_URI")
 if not all([DATABASE_URI]):
-            raise ValueError("DATABASE_URI not providedin .env")
+    raise ValueError("DATABASE_URI not providedin .env")
+
 
 class Session:
     session = None
@@ -37,5 +37,22 @@ class Session:
                                                       bind=self.engine))
         self.Base = declarative_base()
         self.Base.query = self.db_session.query_property()
-        from entities import Poet, PoetAndPoem, Booth, BoothAndPoemCollection, BoothLoggingHistory, BoothMaintainer, ParticipantSession, Poem, PoemCollection, PoemCollectionAndPoem
+        from entities import Poet
+        # PoetAndPoem, Booth, BoothAndPoemCollection, BoothLoggingHistory, BoothMaintainer, ParticipantSession, Poem, PoemCollection, PoemCollectionAndPoem
         self.Base.metadata.create_all(bind=self.engine)
+
+
+def initialize_session():
+    # from database import Session
+    Session.create_session()
+    return Session.session.get_session()
+
+
+def commit_and_destroy_session(db_session):
+    db_session.commit()
+    destroy_session()
+
+
+def destroy_session():
+    # from database import Session
+    Session.session.destroy_session()
