@@ -1,3 +1,4 @@
+import uuid
 import pandas as pd
 from enum import Enum
 from tabulate import tabulate
@@ -88,6 +89,7 @@ def populate_poet_table_according_to_db(table_df):
 
 def populate_poem_table_according_to_db(table_df):
     column_mapping = {
+        'id': uuid.uuid4(),
         'Title': 'title',
         'Recording Duration': 'recordingDuration',
         'RecordingDate': 'recordingDate',
@@ -108,9 +110,10 @@ def populate_poem_table_according_to_db(table_df):
         'Status': 'active',
     }
     table_df = table_df.rename(columns=column_mapping)
-
-    columns_to_remove = ['Telepoem File Name']
+    columns_to_remove = ['Telepoem File Name', 'copyRights', 'poemText']
     table_df = table_df.drop(columns=columns_to_remove, errors='ignore')
+    table_df['isChildrensPoem'] = table_df['isChildrensPoem'].map({'yes': True, 'no': False})
+    table_df['isAdultPoem'] = table_df['isAdultPoem'].map({'yes': True, 'no': False})
     return table_df
 
 

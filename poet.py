@@ -63,17 +63,22 @@ def add_new_poet(db_session, poet):
 
 def poets_handler(poets=None):
     if poets is None:
-        return
+        return []
     try:
         db_session = initialize_session()
 
+        poet_ids = []
         for index, poet in poets.iterrows():
-            if existing_poet := get_existing_poet(db_session, poet):
+            existing_poet = get_existing_poet(db_session, poet)
+            if existing_poet:
                 update_poet(existing_poet, poet)
             else:
                 add_new_poet(db_session, poet)
+                existing_poet = get_existing_poet(db_session, poet)
+            poet_ids.append(existing_poet.id)
 
         commit_and_destroy_session(db_session)
+        return poet_ids
 
     except Exception as e:
         print(f"Error: {e}")
