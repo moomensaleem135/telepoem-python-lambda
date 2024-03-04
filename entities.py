@@ -1,5 +1,17 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, TIMESTAMP, ForeignKey, func, DateTime, Integer, Text, JSON, Date
+from sqlalchemy import (
+    Column,
+    String,
+    Boolean,
+    TIMESTAMP,
+    ForeignKey,
+    func,
+    DateTime,
+    Integer,
+    Text,
+    JSON,
+    Date,
+)
 from sqlalchemy.orm import relationship
 from database import Session
 from datetime import datetime
@@ -230,11 +242,11 @@ from datetime import datetime
 
 
 class Poem(Session.session.get_base()):
-    __tablename__ = 'poem'
+    __tablename__ = "poem"
 
     id = Column(String, primary_key=True, default=str(uuid.uuid4()))
     title = Column(String)
-    poetId = Column(String, ForeignKey('poet.id'), nullable=True)
+    poetId = Column(String, ForeignKey("poet.id"), nullable=True)
     telepoemNumber = Column(String)
     image = Column(String, nullable=True)
     audioLink = Column(String, nullable=True)
@@ -244,10 +256,15 @@ class Poem(Session.session.get_base()):
     recordingSource = Column(String, nullable=True)
     recordingDuration = Column(String, nullable=True)
     poemEra = Column(String, nullable=True)
-    poemTypes = Column(String, nullable=True)  # You may want to use a separate table for types and use relationship
-    poemTopics = Column(String, nullable=True)  # You may want to use a separate table for topics and use relationship
-    poemSpecialTags = Column(String,
-                             nullable=True)  # You may want to use a separate table for special tags and use relationship
+    poemTypes = Column(
+        String, nullable=True
+    )  # You may want to use a separate table for types and use relationship
+    poemTopics = Column(
+        String, nullable=True
+    )  # You may want to use a separate table for topics and use relationship
+    poemSpecialTags = Column(
+        String, nullable=True
+    )  # You may want to use a separate table for special tags and use relationship
     language = Column(String)
     active = Column(Boolean, nullable=True)
     optionalLegal = Column(String, nullable=True)
@@ -259,13 +276,32 @@ class Poem(Session.session.get_base()):
 
     # poemCollections = relationship("PoemCollectionAndPoem")
     poets = relationship("PoetAndPoem")
+
     # participantSessions = relationship("ParticipantSession")
     # copyRightId = Column(String, ForeignKey('copy_right.copy_right_id'))
     # copyRight = relationship("CopyRight", back_populates="poems")
-    def __init__(self, title=None, poetId=None, telepoemNumber=None, image=None, audioLink=None, producerName=None,
-                 narratorName=None, recordingDate=None, recordingSource=None, recordingDuration=None, poemEra=None,
-                 poemTypes=None, poemTopics=None, poemSpecialTags=None, language=None, active=None, optionalLegal=None,
-                 isChildrensPoem=None, isAdultPoem=None):
+    def __init__(
+        self,
+        title=None,
+        poetId=None,
+        telepoemNumber=None,
+        image=None,
+        audioLink=None,
+        producerName=None,
+        narratorName=None,
+        recordingDate=None,
+        recordingSource=None,
+        recordingDuration=None,
+        poemEra=None,
+        poemTypes=None,
+        poemTopics=None,
+        poemSpecialTags=None,
+        language=None,
+        active=None,
+        optionalLegal=None,
+        isChildrensPoem=None,
+        isAdultPoem=None,
+    ):
         self.id = str(uuid.uuid4())
         self.title = title
         self.poetId = poetId
@@ -289,18 +325,18 @@ class Poem(Session.session.get_base()):
 
 
 class PoetAndPoem(Session.session.get_base()):
-    __tablename__ = 'poet_and_poem'
+    __tablename__ = "poet_and_poem"
 
     id = Column(String, primary_key=True)
-    poemId = Column(String, ForeignKey('poem.id'))
-    poetId = Column(String, ForeignKey('poet.id'))
+    poemId = Column(String, ForeignKey("poem.id"))
+    poetId = Column(String, ForeignKey("poet.id"))
 
     poem = relationship("Poem")
     poet = relationship("Poet")
 
 
 class Era(Session.session.get_base()):
-    __tablename__ = 'era'
+    __tablename__ = "era"
     id = Column(String, primary_key=True, default=str(uuid.uuid4()))
     name = Column(String)
     deletedAt = Column(Date)
@@ -315,7 +351,7 @@ class Era(Session.session.get_base()):
 
 
 class PoemType(Session.session.get_base()):
-    __tablename__ = 'poem_type'
+    __tablename__ = "poem_type"
     poemTypeId = Column(String, primary_key=True, default=str(uuid.uuid4()))
     name = Column(String)
     deletedAt = Column(Date)
@@ -330,7 +366,7 @@ class PoemType(Session.session.get_base()):
 
 
 class PoemTopic(Session.session.get_base()):
-    __tablename__ = 'poem_topic'
+    __tablename__ = "poem_topic"
     poemTopicId = Column(String, primary_key=True, default=str(uuid.uuid4()))
     name = Column(String)
     deletedAt = Column(Date)
@@ -345,7 +381,7 @@ class PoemTopic(Session.session.get_base()):
 
 
 class Language(Session.session.get_base()):
-    __tablename__ = 'language'
+    __tablename__ = "language"
     languageId = Column(String, primary_key=True, default=str(uuid.uuid4()))
     name = Column(String)
     country = Column(String)
@@ -362,7 +398,7 @@ class Language(Session.session.get_base()):
 
 
 class SpecialTag(Session.session.get_base()):
-    __tablename__ = 'special_tag'
+    __tablename__ = "special_tag"
     specialTagId = Column(String, primary_key=True, default=str(uuid.uuid4()))
     name = Column(String)
     deletedAt = Column(Date)
@@ -441,17 +477,17 @@ class SpecialTag(Session.session.get_base()):
 
 
 class Poet(Session.session.get_base()):
-    __tablename__ = 'poet'
+    __tablename__ = "poet"
     id = Column(String, primary_key=True, default=str(uuid.uuid4()))
     website = Column(String, nullable=True)
     address = Column(String, nullable=True)
     email = Column(String)
-    phoneNum = Column(String)
+    phoneNumber = Column(String)
     city = Column(String)
     status = Column(Boolean)
-    zipCode = Column(String)
+    zip = Column(String)
     isLaureate = Column(Boolean)
-    photoCredit = Column(String, nullable=True)
+    picCredits = Column(String, nullable=True)
     state = Column(String)
     deletedAt = Column(TIMESTAMP, nullable=True)
     legalFirstName = Column(String)
@@ -467,21 +503,39 @@ class Poet(Session.session.get_base()):
     # Define One-to-Many relationship with PoetAndPoem entity
     poets = relationship("PoetAndPoem", back_populates="poet")
 
-    def __init__(self, website=None, address=None, email=None, phoneNum=None, city=None, status=None, zipCode=None,
-                 isLaureate=None, photoCredit=None, state=None, deletedAt=None, legalFirstName=None, legalLastName=None,
-                 creditedFirstName=None, creditedLastName=None, poetImage=None, poetBiography=None,
-                 createdAt=datetime.utcnow, updatedAt=None):
+    def __init__(
+        self,
+        website=None,
+        address=None,
+        email=None,
+        phoneNumber=None,
+        city=None,
+        status=None,
+        zip=None,
+        isLaureate=None,
+        picCredits=None,
+        state=None,
+        deletedAt=None,
+        legalFirstName=None,
+        legalLastName=None,
+        creditedFirstName=None,
+        creditedLastName=None,
+        poetImage=None,
+        poetBiography=None,
+        createdAt=datetime.utcnow,
+        updatedAt=None,
+    ):
         self.id = str(uuid.uuid4())
         self.website = website
         self.address = address
         self.email = email
-        self.phoneNum = phoneNum
+        self.phoneNumber = phoneNumber
         self.city = city
         self.status = status
-        self.zipCode = zipCode
+        self.zip = zip
         # self.pic = pic
         self.isLaureate = isLaureate
-        self.photoCredit = photoCredit
+        self.picCredits = picCredits
         self.state = state
         self.legalFirstName = legalFirstName
         self.legalLastName = legalLastName
@@ -504,13 +558,13 @@ class Poet(Session.session.get_base()):
     #         "website": self.website,
     #         "address": self.address,
     #         "email": self.email,
-    #         "phone_num": self.phoneNum,
+    #         "phone_num": self.phoneNumber,
     #         "city": self.city,
     #         "status": self.status,
     #         "zipCode": self.zipCode,
     #         "pic": self.pic,
     #         "isLaureate": self.isLaureate,
-    #         "photoCredit": self.photoCredit,
+    #         "picCredits": self.picCredits,
     #         "state": self.state,
     #         "createdAt": self.createdAt,
     #         "updatedAt": self.updatedAt,

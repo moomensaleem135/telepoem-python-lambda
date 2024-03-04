@@ -15,10 +15,12 @@ def extract_table_info(df):
             if tables_info and "ending_index" not in tables_info[-1]:
                 tables_info[-1]["ending_index"] = i
 
-            tables_info.append({
-                "table_name": column,
-                "starting_index": i,
-            })
+            tables_info.append(
+                {
+                    "table_name": column,
+                    "starting_index": i,
+                }
+            )
 
     if tables_info and "ending_index" not in tables_info[-1]:
         tables_info[-1]["ending_index"] = i + 1
@@ -40,9 +42,21 @@ def extract_data_rows(df):
 
 def create_table_dataframe(df, table_info):
     columns, data = extract_data_rows(df)
-    table_data = [index[table_info["starting_index"]:table_info["ending_index"]] for index in data]
-    table_df = pd.DataFrame(table_data, columns=columns[table_info["starting_index"]:table_info["ending_index"]])
-    return table_df.dropna()
+    table_data = [
+        index[table_info["starting_index"] : table_info["ending_index"]]
+        for index in data
+    ]
+    table_df = pd.DataFrame(
+        table_data,
+        columns=columns[table_info["starting_index"] : table_info["ending_index"]],
+    )
+    if "tableSeperator" in table_df.columns:
+        table_df = table_df.drop(columns="tableSeperator")
+    table_df = table_df.fillna("")
+    if table_df.empty:
+        return None
+    else:
+        return table_df
 
 
 class TableName(Enum):
@@ -63,57 +77,76 @@ def get_table_dataframes(file_path):
 
 
 def populate_poet_table_according_to_db(table_df):
-    table_df[['legalLastName', 'legalFirstName']] = table_df['Legal Name'].str.split(', ', n=1, expand=True)
-    table_df[["creditedLastName", "creditedFirstName"]] = table_df['Credited Name'].str.split(' and ', n=1, expand=True)
+    table_df["legalLastName"], table_df["legalFirstName"] = zip(
+        *table_df["legalName"].apply(
+            lambda x: (
+                ["", x.replace("(Unknown), ", "")]
+                if "(Unknown)" in x
+                else x.split(", ", 1)
+            )
+        )
+    )
 
+    table_df["creditedLastName"], table_df["creditedFirstName"] = zip(
+        *table_df["creditedName"].apply(
+            lambda x: (x.split(", ", 1) if len(x.split(", ")) > 1 else ["", x])
+        )
+    )
+    table_df["status"] = table_df["status"].map(
+        {"ACTIVE": True, "INACTIVE": False, "": False}
+    )
+    table_df["isLaureate"] = table_df["isLaureate"].map(
+        {"YES": True, "NO": False, "": False}
+    )
     column_mapping = {
-        'Website': 'website',
-        'Address': 'address',
-        'Email': 'email',
-        'Phone Number': 'phoneNum',
-        'City': 'city',
-        'Status': 'status',
-        'Zip': 'zipCode',
-        'Is Laureate': 'isLaureate',
-        'Pic Credits': 'photoCredit',
-        'State': 'state',
-        'Poet Biography': 'poetBiography',
+        "Website": "website",
+        "Address": "address",
+        "Email": "email",
+        "Phone Number": "phoneNumber",
+        "City": "city",
+        "Status": "status",
+        "Zip": "zip",
+        "Is Laureate": "isLaureate",
+        "Pic Credits": "picCredits",
+        "State": "state",
+        "Poet Biography": "poetBiography",
     }
     table_df = table_df.rename(columns=column_mapping)
 
-    columns_to_remove = ['Legal Name', 'Credited Name', 'Additional Poets Name']
-    table_df = table_df.drop(columns=columns_to_remove, errors='ignore')
-    table_df['isLaureate'] = table_df['isLaureate'].map({'yes': True, 'no': False})
+    columns_to_remove = ["legalName", "creditedName", "additionalPoetsName"]
+    table_df = table_df.drop(columns=columns_to_remove, errors="ignore")
     return table_df
 
 
 def populate_poem_table_according_to_db(table_df):
     column_mapping = {
-        'id': uuid.uuid4(),
-        'Title': 'title',
-        'Recording Duration': 'recordingDuration',
-        'RecordingDate': 'recordingDate',
-        'Recording Source': 'recordingSource',
-        'Telepoem Number': 'telepoemNumber',
-        'Copy Rights': 'copyRights',
-        'Optional Legal': 'optionalLegal',
-        'Producer Name': 'producerName',
-        'Narrator Name': 'narratorName',
-        'Topics': 'poemTopics',
-        'Types': 'poemTypes',
-        'Special Tags': 'poemSpecialTags',
-        'Era': 'poemEra',
-        'Poem Text': 'poemText',
-        'Is Adult Poem': 'isAdultPoem',
-        'Is Children Poem': 'isChildrensPoem',
-        'Language': 'language',
-        'Status': 'active',
+        "id": uuid.uuid4(),
+        "Title": "title",
+        "Recording Duration": "recordingDuration",
+        "RecordingDate": "recordingDate",
+        "Recording Source": "recordingSource",
+        "Telepoem Number": "telepoemNumber",
+        "Copy Rights": "copyRights",
+        "Optional Legal": "optionalLegal",
+        "Producer Name": "producerName",
+        "Narrator Name": "narratorName",
+        "Topics": "poemTopics",
+        "Types": "poemTypes",
+        "Special Tags": "poemSpecialTags",
+        "Era": "poemEra",
+        "Poem Text": "poemText",
+        "Is Adult Poem": "isAdultPoem",
+        "Is Children Poem": "isChildrenPoem",
+        "Language": "language",
+        "Status": "status",
     }
     table_df = table_df.rename(columns=column_mapping)
-    columns_to_remove = ['Telepoem File Name', 'copyRights', 'poemText']
-    table_df = table_df.drop(columns=columns_to_remove, errors='ignore')
-    table_df['isChildrensPoem'] = table_df['isChildrensPoem'].map({'yes': True, 'no': False})
-    table_df['isAdultPoem'] = table_df['isAdultPoem'].map({'yes': True, 'no': False})
+    columns_to_remove = ["Telepoem File Name", "copyRights", "poemText"]
+    table_df = table_df.drop(columns=columns_to_remove, errors="ignore")
+    table_df["isChildrenPoem"] = table_df["isChildrenPoem"].map(
+        {"yes": True, "no": False}
+    )
+    table_df["isAdultPoem"] = table_df["isAdultPoem"].map({"yes": True, "no": False})
     return table_df
 
 
@@ -131,12 +164,11 @@ def print_table_dfs(table_dfs):
     for table_name, table_df in table_dfs.items():
         if table_name == TableName.POET_INFORMATION.value:
             print(f"{table_name} DataFrame:")
-            print(tabulate(table_df, headers='keys', tablefmt='psql'))
+            print(tabulate(table_df, headers="keys", tablefmt="psql"))
             print("\n")
 
 
 def print_df(table_df, table_name):
     print(f"{table_name} DataFrame:")
-    print(tabulate(table_df, headers='keys', tablefmt='psql'))
+    print(tabulate(table_df, headers="keys", tablefmt="psql"))
     print("\n")
-

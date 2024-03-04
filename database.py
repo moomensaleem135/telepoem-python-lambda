@@ -32,12 +32,13 @@ class Session:
 
     def init_db(self):
         self.engine = create_engine(DATABASE_URI)
-        self.db_session = scoped_session(sessionmaker(autocommit=False,
-                                                      autoflush=True,
-                                                      bind=self.engine))
+        self.db_session = scoped_session(
+            sessionmaker(autocommit=False, autoflush=True, bind=self.engine)
+        )
         self.Base = declarative_base()
         self.Base.query = self.db_session.query_property()
         from entities import Poet, Poem
+
         # PoetAndPoem, Booth, BoothAndPoemCollection, BoothLoggingHistory, BoothMaintainer, ParticipantSession, PoemCollection, PoemCollectionAndPoem
         self.Base.metadata.create_all(bind=self.engine)
 

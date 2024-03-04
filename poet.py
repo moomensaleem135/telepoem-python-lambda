@@ -9,12 +9,13 @@ def process_phone_number(phone_number):
 
 def get_existing_poet(db_session, poet):
     from entities import Poet
+
     return (
         db_session.query(Poet)
         .filter(
             and_(
-                Poet.legalLastName == poet['legalLastName'],
-                Poet.legalFirstName == poet['legalFirstName'],
+                Poet.legalLastName == poet["legalLastName"],
+                Poet.legalFirstName == poet["legalFirstName"],
             )
         )
         .first()
@@ -23,6 +24,7 @@ def get_existing_poet(db_session, poet):
 
 def update_poet(existing_poet, new_poet):
     from entities import Poet
+
     new_poet = Poet(**new_poet)
     print("Updating the poet.......")
     if new_poet.poetImage:
@@ -45,20 +47,24 @@ def update_poet(existing_poet, new_poet):
         existing_poet.city = new_poet.city
     if new_poet.isLaureate:
         existing_poet.isLaureate = new_poet.isLaureate
-    if new_poet.phoneNum:
-        existing_poet.phoneNum = new_poet.phoneNum
-    if new_poet.photoCredit:
-        existing_poet.photoCredit = new_poet.photoCredit
+    if new_poet.phoneNumber:
+        existing_poet.phoneNumber = new_poet.phoneNumber
+    if new_poet.picCredits:
+        existing_poet.picCredits = new_poet.picCredits
     if new_poet.website:
         existing_poet.website = new_poet.website
-    if new_poet.zipCode:
-        existing_poet.zipCode = new_poet.zipCode
+    if new_poet.zip:
+        existing_poet.zip = new_poet.zip
 
 
 def add_new_poet(db_session, poet):
     from entities import Poet
+
     print("adding new poet......")
-    db_session.add(Poet(**poet))
+    # db_session.add(Poet(**poet))
+    new_poet = Poet(**poet)
+    db_session.add(new_poet)
+    return new_poet
 
 
 def poets_handler(poets=None):
@@ -73,8 +79,8 @@ def poets_handler(poets=None):
             if existing_poet:
                 update_poet(existing_poet, poet)
             else:
-                add_new_poet(db_session, poet)
-                existing_poet = get_existing_poet(db_session, poet)
+                existing_poet = add_new_poet(db_session, poet)
+                # existing_poet = get_existing_poet(db_session, poet)
             poet_ids.append(existing_poet.id)
 
         commit_and_destroy_session(db_session)
