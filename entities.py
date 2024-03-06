@@ -255,20 +255,16 @@ class Poem(Session.session.get_base()):
     recordingDate = Column(TIMESTAMP(timezone=True), nullable=True)
     recordingSource = Column(String, nullable=True)
     recordingDuration = Column(String, nullable=True)
-    poemEra = Column(String, nullable=True)
-    poemTypes = Column(
-        String, nullable=True
-    )  # You may want to use a separate table for types and use relationship
-    poemTopics = Column(
-        String, nullable=True
-    )  # You may want to use a separate table for topics and use relationship
-    poemSpecialTags = Column(
-        String, nullable=True
-    )  # You may want to use a separate table for special tags and use relationship
+    era = Column(String, nullable=True)
+    type = Column(String, nullable=True)
+    topics = Column(String, nullable=True)
+    specialTags = Column(String, nullable=True)
+    poemText = Column(String)
     language = Column(String)
+    copyRights = Column(String)
     active = Column(Boolean, nullable=True)
     optionalLegal = Column(String, nullable=True)
-    isChildrensPoem = Column(Boolean, nullable=True)
+    isChildrenPoem = Column(Boolean, nullable=True)
     isAdultPoem = Column(Boolean, nullable=True)
     # createdAt = Column(TIMESTAMP(timezone=True), default=func.now())
     # updatedAt = Column(TIMESTAMP(timezone=True), default=func.now(), onupdate=func.now())
@@ -292,14 +288,16 @@ class Poem(Session.session.get_base()):
         recordingDate=None,
         recordingSource=None,
         recordingDuration=None,
-        poemEra=None,
-        poemTypes=None,
-        poemTopics=None,
-        poemSpecialTags=None,
+        era=None,
+        types=None,
+        topics=None,
+        specialTags=None,
+        poemText=None,
         language=None,
+        copyRights=None,
         active=None,
         optionalLegal=None,
-        isChildrensPoem=None,
+        isChildrenPoem=None,
         isAdultPoem=None,
     ):
         self.id = str(uuid.uuid4())
@@ -313,26 +311,33 @@ class Poem(Session.session.get_base()):
         self.recordingDate = recordingDate
         self.recordingSource = recordingSource
         self.recordingDuration = recordingDuration
-        self.poemEra = poemEra
-        self.poemTypes = poemTypes
-        self.poemTopics = poemTopics
-        self.poemSpecialTags = poemSpecialTags
+        self.poemEra = era
+        self.poemTypes = types
+        self.poemTopics = topics
+        self.poemSpecialTags = specialTags
+        self.poemText = poemText
         self.language = language
+        self.copyRight = copyRights
         self.active = active
         self.optionalLegal = optionalLegal
-        self.isChildrensPoem = isChildrensPoem
+        self.isChildrenPoem = isChildrenPoem
         self.isAdultPoem = isAdultPoem
 
 
 class PoetAndPoem(Session.session.get_base()):
     __tablename__ = "poet_and_poem"
 
-    id = Column(String, primary_key=True)
+    id = Column(String, primary_key=True, default=str(uuid.uuid4()))
     poemId = Column(String, ForeignKey("poem.id"))
     poetId = Column(String, ForeignKey("poet.id"))
 
     poem = relationship("Poem")
     poet = relationship("Poet")
+
+    def __init__(self, poemId=None, poetId=None):
+        self.id = str(uuid.uuid4())
+        self.poemId = poemId
+        self.poetId = poetId
 
 
 class Era(Session.session.get_base()):
@@ -482,12 +487,12 @@ class Poet(Session.session.get_base()):
     website = Column(String, nullable=True)
     address = Column(String, nullable=True)
     email = Column(String)
-    phoneNumber = Column(String)
+    phoneNum = Column(String)
     city = Column(String)
     status = Column(Boolean)
-    zip = Column(String)
+    zipCode = Column(String)
     isLaureate = Column(Boolean)
-    picCredits = Column(String, nullable=True)
+    photoCredit = Column(String, nullable=True)
     state = Column(String)
     deletedAt = Column(TIMESTAMP, nullable=True)
     legalFirstName = Column(String)
@@ -508,12 +513,12 @@ class Poet(Session.session.get_base()):
         website=None,
         address=None,
         email=None,
-        phoneNumber=None,
+        phoneNum=None,
         city=None,
         status=None,
-        zip=None,
+        zipCode=None,
         isLaureate=None,
-        picCredits=None,
+        photoCredit=None,
         state=None,
         deletedAt=None,
         legalFirstName=None,
@@ -529,13 +534,12 @@ class Poet(Session.session.get_base()):
         self.website = website
         self.address = address
         self.email = email
-        self.phoneNumber = phoneNumber
+        self.phoneNum = phoneNum
         self.city = city
         self.status = status
-        self.zip = zip
-        # self.pic = pic
+        self.zipCode = zipCode
         self.isLaureate = isLaureate
-        self.picCredits = picCredits
+        self.photoCredit = photoCredit
         self.state = state
         self.legalFirstName = legalFirstName
         self.legalLastName = legalLastName

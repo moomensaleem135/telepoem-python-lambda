@@ -1,7 +1,5 @@
-import uuid
 import pandas as pd
 from enum import Enum
-from tabulate import tabulate
 
 
 def extract_table_info(df):
@@ -99,17 +97,9 @@ def populate_poet_table_according_to_db(table_df):
         {"YES": True, "NO": False, "": False}
     )
     column_mapping = {
-        "Website": "website",
-        "Address": "address",
-        "Email": "email",
-        "Phone Number": "phoneNumber",
-        "City": "city",
-        "Status": "status",
-        "Zip": "zip",
-        "Is Laureate": "isLaureate",
-        "Pic Credits": "picCredits",
-        "State": "state",
-        "Poet Biography": "poetBiography",
+        "phoneNumber": "phoneNum",
+        "zip": "zipCode",
+        "picCredits": "photoCredit",
     }
     table_df = table_df.rename(columns=column_mapping)
 
@@ -120,33 +110,25 @@ def populate_poet_table_according_to_db(table_df):
 
 def populate_poem_table_according_to_db(table_df):
     column_mapping = {
-        "id": uuid.uuid4(),
-        "Title": "title",
-        "Recording Duration": "recordingDuration",
-        "RecordingDate": "recordingDate",
-        "Recording Source": "recordingSource",
-        "Telepoem Number": "telepoemNumber",
-        "Copy Rights": "copyRights",
-        "Optional Legal": "optionalLegal",
-        "Producer Name": "producerName",
-        "Narrator Name": "narratorName",
-        "Topics": "poemTopics",
-        "Types": "poemTypes",
-        "Special Tags": "poemSpecialTags",
-        "Era": "poemEra",
-        "Poem Text": "poemText",
-        "Is Adult Poem": "isAdultPoem",
-        "Is Children Poem": "isChildrenPoem",
-        "Language": "language",
-        "Status": "status",
+        "status": "active",
     }
     table_df = table_df.rename(columns=column_mapping)
-    columns_to_remove = ["Telepoem File Name", "copyRights", "poemText"]
+    columns_to_remove = [
+        "Telepoem File Name",
+        "telepoemPublicationCollection(Poem Collection)",
+    ]
     table_df = table_df.drop(columns=columns_to_remove, errors="ignore")
-    table_df["isChildrenPoem"] = table_df["isChildrenPoem"].map(
-        {"yes": True, "no": False}
+    table_df["active"] = table_df["active"].map({"Active": True, "Inactive": False})
+    table_df["recordingDate"] = (
+        table_df["recordingDate"]
+        .fillna(pd.NaT)
+        .astype(object)
+        .where(pd.notnull(table_df["recordingDate"]), None)
     )
-    table_df["isAdultPoem"] = table_df["isAdultPoem"].map({"yes": True, "no": False})
+    table_df["isChildrenPoem"] = table_df["isChildrenPoem"].map(
+        {"YES": True, "NO": False}
+    )
+    table_df["isAdultPoem"] = table_df["isAdultPoem"].map({"YES": True, "NO": False})
     return table_df
 
 
@@ -164,11 +146,9 @@ def print_table_dfs(table_dfs):
     for table_name, table_df in table_dfs.items():
         if table_name == TableName.POET_INFORMATION.value:
             print(f"{table_name} DataFrame:")
-            print(tabulate(table_df, headers="keys", tablefmt="psql"))
             print("\n")
 
 
 def print_df(table_df, table_name):
     print(f"{table_name} DataFrame:")
-    print(tabulate(table_df, headers="keys", tablefmt="psql"))
     print("\n")

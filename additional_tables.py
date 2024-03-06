@@ -104,50 +104,49 @@ def poems_handler(poems=None):
         db_session = initialize_session()
         for index, poem in poems.iterrows():
 
-            era = get_existing_era(db_session, poem['poemEra'])
+            era = get_existing_era(db_session, poem['era'])
             print(f'era from the database is: {era}')
             if not era:
-                add_new_era(db_session, era_name=poem['poemEra'])
-                era = get_existing_era(db_session, poem['poemEra'])
-            poem['poemEra'] = era.id
+                era = add_new_era(db_session, era_name=poem['era'])
+                # era = get_existing_era(db_session, poem['era'])
+            poem['era'] = era.id
 
-            poem_topic = get_existing_poem_topic(db_session, poem['poemTopics'])
+            poem_topic = get_existing_poem_topic(db_session, poem['topics'])
             print(f'poem_topic from the database is: {poem_topic}')
             if not poem_topic:
-                add_new_poem_topic(db_session, topic_name=poem['poemTopics'])
-                poem_topic = get_existing_poem_topic(db_session, poem['poemTopics'])
-            poem['poemTopics'] = poem_topic.poemTopicId
+                poem_topic = add_new_poem_topic(db_session, topic_name=poem['topics'])
+                # poem_topic = get_existing_poem_topic(db_session, poem['topics'])
+            poem['topics'] = poem_topic.poemTopicId
 
             poem_language = get_existing_poem_language(db_session, poem['language'])
             print(f'poem_language from the database is: {poem_language}')
             if not poem_language:
-                add_new_poem_language(db_session, language_name=poem['language'])
-                poem_language = get_existing_poem_language(db_session, poem['language'])
+                poem_language = add_new_poem_language(db_session, language_name=poem['language'])
+                # poem_language = get_existing_poem_language(db_session, poem['language'])
             poem['language'] = poem_language.languageId
 
-            special_tag = get_existing_special_tag(db_session, poem['poemSpecialTags'])
+            special_tag = get_existing_special_tag(db_session, poem['specialTags'])
             print(f'special_tag from the database is: {special_tag}')
             if not special_tag:
-                add_new_special_tag(db_session, special_tag_name=poem['poemSpecialTags'])
-                special_tag = get_existing_special_tag(db_session, poem['poemSpecialTags'])
-            poem['poemSpecialTags'] = special_tag.specialTagId
+                special_tag = add_new_special_tag(db_session, special_tag_name=poem['specialTags'])
+                # special_tag = get_existing_special_tag(db_session, poem['specialTags'])
+            poem['specialTags'] = special_tag.specialTagId
 
             poem_types = None
-            for poem_type in str(poem['poemTypes']).split(', '):
+            for poem_type in str(poem['types']).split(', '):
                 db_poem_type = get_existing_poem_type(db_session, poem_type)
                 print(f'poem_type from the database is: {db_poem_type}')
                 if not db_poem_type:
-                    add_new_poem_type(db_session, type_name=poem_type)
-                    db_poem_type = get_existing_poem_type(db_session, poem_type)
+                    db_poem_type = add_new_poem_type(db_session, type_name=poem_type)
+                    # db_poem_type = get_existing_poem_type(db_session, poem_type)
                 if poem_types:
                     poem_types = f"{poem_types}, {db_poem_type.poemTypeId}"
                 else:
                     poem_types = db_poem_type.poemTypeId
-            poem['poemTypes'] = poem_types
+            poem['types'] = poem_types
 
             db_poem = add_new_poem(db_session, poem)
             add_new_poet_and_poem(db_session, {
-                "id": str(uuid.uuid4()),
                 "poemId": db_poem.id,
                 "poetId": poem['poetId'],
             })
