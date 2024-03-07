@@ -32,7 +32,7 @@ class IndexView(GenericAPIView):
                     poem_df = PoemTableProcessor.populate_poem_table_according_to_db(
                         table_df
                     )
-                    poem_df["poetId"] = poet_objs
+                    poem_df["poet"] = poet_objs
                     poem_objs = Handler(poem_df).poems_handler()
                 elif table_name == TableName.BOOTH_INFORMATION.value:
                     booth_df = BoothTableProcessor.populate_booth_table_according_to_db(
@@ -43,8 +43,8 @@ class IndexView(GenericAPIView):
                     poemcollection_df = PoemCollectionTableProcessor.populate_poemcollection_table_according_to_db(
                         table_df
                     )
-                    poemcollection_df["poemId"] = poem_objs
-                    poemcollection_df["boothId"] = booth_objs
+                    poemcollection_df["poem"] = poem_objs
+                    poemcollection_df["booth"] = booth_objs
                     Handler(poemcollection_df).poem_collections_handler()
             return Response({"success": "Data saved successfully"})
         except Exception as e:

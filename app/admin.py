@@ -14,7 +14,6 @@ from .models import (
     Language,
     DirectoryType,
     BoothMaintainer,
-    BoothLoggingHistory,
     Booth,
     BoothAndPoemCollection,
 )
@@ -33,6 +32,5 @@ admin.site.register(SpecialTag)
 admin.site.register(Language)
 admin.site.register(DirectoryType)
 admin.site.register(BoothMaintainer)
-admin.site.register(BoothLoggingHistory)
 admin.site.register(Booth)
 admin.site.register(BoothAndPoemCollection)

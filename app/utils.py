@@ -1,6 +1,5 @@
 import pandas as pd
 from enum import Enum
-import math
 from .models import (
     PhoneType,
     PoemType,
@@ -12,7 +11,6 @@ from .models import (
     PoetAndPoem,
     Booth,
     BoothAndPoemCollection,
-    BoothLoggingHistory,
     BoothMaintainer,
     TelepoemBoothType,
     SpecialTag,
@@ -20,6 +18,27 @@ from .models import (
     DirectoryType,
     Era,
 )
+
+# def read_excel_from_s3(file_name=None):
+#     aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+#     aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+#     bucket_name = os.getenv('BUCKET_NAME')
+
+#     if not all([aws_access_key_id, aws_secret_access_key, bucket_name, file_name]):
+#         raise ValueError("AWS credentials or S3 bucket/file information not provided.")
+
+#     s3 = boto3.client('s3',
+#                       aws_access_key_id=aws_access_key_id,
+#                       aws_secret_access_key=aws_secret_access_key)
+#     try:
+#         obj = s3.get_object(Bucket=bucket_name, Key=file_name)
+#         excel_data = pd.read_excel(io.BytesIO(obj['Body'].read()), sheet_name=None,
+#                                    engine='openpyxl')  # Read all sheets into a dictionary
+#         return excel_data
+#     except FileNotFoundError:
+#         raise RuntimeError("The specified file was not found on S3.")
+#     except Exception as e:
+#         raise RuntimeError(f"Failed to read Excel file from S3: {str(e)}\n{traceback.format_exc()}")
 
 
 class TableProcessor:
@@ -235,6 +254,7 @@ class Handler:
             return poet_objs
         except Exception as e:
             print(f"Error: {e}")
+            return None
 
     def poems_handler(self):
         if self.table_dfs is None:
@@ -245,53 +265,58 @@ class Handler:
                 era = Era.objects.filter(name=poem["poemEra"]).first()
                 if not era:
                     era = Era.objects.create(name=poem["poemEra"])
-                poem["poemEra"] = era
+                poem["poemEra"] = era.id
                 if poem["poemTypes"]:
+                    poem_type_objs = []
                     types_split = poem["poemTypes"].split(", ")
-                    poem_type_objects = [
-                        PoemType.objects.get_or_create(name=name)[0]
-                        for name in types_split
-                    ]
-                    # Maximum 2 types allowed
-                    if len(poem_type_objects) > 2:
-                        poem_type_objects = poem_type_objects[:2]
+                    for name in types_split:
+                        poem_type_obj = PoemType.objects.filter(name=name).first()
+                        if not poem_type_obj:
+                            poem_type_obj = PoemType.objects.create(name=name)
+                        poem_type_objs.append(poem_type_obj.id)
                     poem["poemTypes"] = ", ".join(
-                        str(poem_type.id) for poem_type in poem_type_objects
+                        [str(poem_type_id) for poem_type_id in poem_type_objs]
                     )
 
                 if poem["poemTopics"]:
+                    poem_topic_objs = []
                     topics_split = poem["poemTopics"].split(", ")
-                    poem_topic_objects = [
-                        PoemTopic.objects.get_or_create(name=name)[0]
-                        for name in topics_split
-                    ]
-                    # Maximum 3 topics allowed
-                    if len(poem_topic_objects) > 3:
-                        poem_topic_objects = poem_topic_objects[:3]
+                    for name in topics_split:
+                        poem_topic_obj = PoemTopic.objects.filter(name=name).first()
+                        if not poem_topic_obj:
+                            poem_topic_obj = PoemTopic.objects.create(name=name)
+                        poem_topic_objs.append(poem_topic_obj.id)
                     poem["poemTopics"] = ", ".join(
-                        str(poem_topic.id) for poem_topic in poem_topic_objects
+                        [str(poem_topic_id) for poem_topic_id in poem_topic_objs]
                     )
+
                 if poem["poemSpecialTags"]:
+                    special_tag_objs = []
                     tags_split = poem["poemSpecialTags"].split(", ")
-                    special_tag_objects = [
-                        SpecialTag.objects.get_or_create(name=name)[0]
-                        for name in tags_split
-                    ]
+                    for name in tags_split:
+                        special_tag_obj = SpecialTag.objects.filter(name=name).first()
+                        if not special_tag_obj:
+                            special_tag_obj = SpecialTag.objects.create(name=name)
+                        special_tag_objs.append(special_tag_obj.id)
                     poem["poemSpecialTags"] = ", ".join(
-                        str(special_tag.id) for special_tag in special_tag_objects
+                        [str(special_tag_id) for special_tag_id in special_tag_objs]
                     )
+
                 if poem["language"]:
-                    languages_split = poem["language"].split(", ")
-                    language_objects = [
-                        Language.objects.get_or_create(name=name)[0]
-                        for name in languages_split
-                    ]
+                    language_objs = []
+                    languages_split = poem["language"].split("; ")
+                    for name in languages_split:
+                        language_obj = Language.objects.filter(name=name).first()
+                        if not language_obj:
+                            language_obj = Language.objects.create(name=name)
+                        language_objs.append(language_obj.id)
                     poem["language"] = ", ".join(
-                        str(language.id) for language in language_objects
+                        [str(language_id) for language_id in language_objs]
                     )
+
                 poem_obj = Poem.objects.filter(
                     title=poem["title"],
-                    poetId=poem["poetId"],
+                    poet=poem["poet"],
                 ).first()
                 if poem_obj:
                     poem_obj.producerName = poem["producerName"]
@@ -319,15 +344,16 @@ class Handler:
                     )
                     print("Poem Created")
                 poet_and_poem_obj = PoetAndPoem.objects.filter(
-                    poemId=poem_obj, poetId=poem["poetId"]
+                    poem=poem_obj, poet=poem["poet"]
                 ).first()
                 if not poet_and_poem_obj:
-                    PoetAndPoem.objects.create(poemId=poem_obj, poetId=poem["poetId"])
+                    PoetAndPoem.objects.create(poem=poem_obj, poet=poem["poet"])
                     print("PoetAndPoem Created")
                 poem_objs.append(poem_obj)
             return poem_objs
         except Exception as e:
             print(f"Error: {e}")
+            return None
 
     def booths_handler(self):
         if self.table_dfs is None:
@@ -388,24 +414,28 @@ class Handler:
                         )
                         print("DirectoryType Created")
 
-                    booth_maintainer = BoothMaintainer.objects.filter(
-                        name=booth["boothMaintainer"]
-                    ).first()
-                    if not booth_maintainer:
-                        booth_maintainer = BoothMaintainer.objects.create(
+                    if booth["boothMaintainer"]:
+                        booth_maintainer = BoothMaintainer.objects.filter(
                             name=booth["boothMaintainer"]
-                        )
-                        print("BoothMaintainer Created")
-
+                        ).first()
+                        if not booth_maintainer:
+                            booth_maintainer = BoothMaintainer.objects.create(
+                                name=booth["boothMaintainer"]
+                            )
+                            print("BoothMaintainer Created")
+                    else:
+                        booth_maintainer = None
                     # Create Booth object with the extracted values
-                    booth_obj = Booth.objects.filter(boothName=booth_name).first()
+                    booth_obj = Booth.objects.filter(
+                        boothName=booth_name, boothMaintainer=booth_maintainer
+                    ).first()
                     if booth["zipCode"] == "":
                         booth["zipCode"] = None
                     if booth_obj:
                         booth_obj.number = booth_number
-                        booth_obj.phoneType = phone_type_obj
-                        booth_obj.boothType = telepoem_booth_type_obj
-                        booth_obj.directoryType = directoryType_obj
+                        booth_obj.phoneType = phone_type_obj.id
+                        booth_obj.boothType = telepoem_booth_type_obj.id
+                        booth_obj.directoryType = directoryType_obj.id
                         booth_obj.boothMaintainer = booth_maintainer
                         booth_obj.directoryTabletSerialNumber = booth[
                             "directoryTabletSerialNumber"
@@ -427,9 +457,9 @@ class Handler:
                         booth_obj = Booth.objects.create(
                             boothName=booth_name,
                             number=booth_number,
-                            phoneType=phone_type_obj,
-                            boothType=telepoem_booth_type_obj,
-                            directoryType=directoryType_obj,
+                            phoneType=phone_type_obj.id,
+                            boothType=telepoem_booth_type_obj.id,
+                            directoryType=directoryType_obj.id,
                             boothMaintainer=booth_maintainer,
                             directoryTabletSerialNumber=booth[
                                 "directoryTabletSerialNumber"
@@ -452,54 +482,63 @@ class Handler:
             return booth_objs_list
         except Exception as e:
             print(f"Error: {e}")
+            return None
 
     def poem_collections_handler(self):
         if self.table_dfs is None:
             return
         try:
             for index, poemcollection in self.table_dfs.iterrows():
-                poem_collection_obj = PoemCollection.objects.filter(
-                    poemCollectionName=poemcollection["poemCollectionName"],
-                ).first()
-                if poem_collection_obj:
-                    poem_collection_obj.poemCollectionName = (
-                        poemcollection["poemCollectionName"],
+                poemCollectionNames = poemcollection["poemCollectionName"].split("; ")
+
+                num_poemCollectionNames = len(poemCollectionNames)
+
+                for i in range(num_poemCollectionNames):
+                    poemCollectionName = (
+                        poemCollectionNames[i]
+                        if i < num_poemCollectionNames
+                        else poemCollectionNames[-1]
                     )
-                    poem_collection_obj.poemCollectionDescription = poemcollection[
-                        "poemCollectionDescription"
-                    ]
-                    poem_collection_obj.save()
-                    print("Poem Collection updated")
-                else:
-                    poem_collection_obj = PoemCollection.objects.create(
-                        poemCollectionName=poemcollection["poemCollectionName"],
-                        poemCollectionDescription=poemcollection[
+                    poem_collection_obj = PoemCollection.objects.filter(
+                        poemCollectionName=poemCollectionName,
+                    ).first()
+                    if poem_collection_obj:
+                        poem_collection_obj.poemCollectionDescription = poemcollection[
                             "poemCollectionDescription"
-                        ],
-                    )
-                    print("Poem Collection created")
-                poem_collection_and_poem_obj = PoemCollectionAndPoem.objects.filter(
-                    poemCollectionId=poem_collection_obj,
-                    poemId=poemcollection["poemId"],
-                ).first()
-                if not poem_collection_and_poem_obj:
-                    PoemCollectionAndPoem.objects.create(
-                        poemCollectionId=poem_collection_obj,
-                        poemId=poemcollection["poemId"],
-                    )
-                    print("Poem Collection and Poem created")
-                for booth in poemcollection["boothId"]:
-                    booth_and_poem_collection_obj = (
-                        BoothAndPoemCollection.objects.filter(
-                            booth=booth,
-                            poemCollection=poem_collection_obj,
-                        ).first()
-                    )
-                    if not booth_and_poem_collection_obj:
-                        BoothAndPoemCollection.objects.create(
-                            booth=booth,
-                            poemCollection=poem_collection_obj,
+                        ]
+                        poem_collection_obj.save()
+                        print("Poem Collection updated")
+                    else:
+                        poem_collection_obj = PoemCollection.objects.create(
+                            poemCollectionName=poemCollectionName,
+                            poemCollectionDescription=poemcollection[
+                                "poemCollectionDescription"
+                            ],
                         )
-                        print(f"Booth and Peom Collection created")
+                        print("Poem Collection created")
+                    poem_collection_and_poem_obj = PoemCollectionAndPoem.objects.filter(
+                        poemCollection=poem_collection_obj,
+                        poem=poemcollection["poem"],
+                    ).first()
+                    if not poem_collection_and_poem_obj:
+                        PoemCollectionAndPoem.objects.create(
+                            poemCollection=poem_collection_obj,
+                            poem=poemcollection["poem"],
+                        )
+                        print("Poem Collection and Poem created")
+                    for booth in poemcollection["booth"]:
+                        booth_and_poem_collection_obj = (
+                            BoothAndPoemCollection.objects.filter(
+                                booth=booth,
+                                poemCollection=poem_collection_obj,
+                            ).first()
+                        )
+                        if not booth_and_poem_collection_obj:
+                            BoothAndPoemCollection.objects.create(
+                                booth=booth,
+                                poemCollection=poem_collection_obj,
+                            )
+                            print(f"Booth and Peom Collection created")
         except Exception as e:
             print(f"Error: {e}")
+            return None

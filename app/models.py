@@ -83,14 +83,14 @@ class Language(models.Model):
 class Poem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
-    poetId = models.ForeignKey(Poet, on_delete=models.CASCADE)
+    poet = models.ForeignKey(Poet, on_delete=models.CASCADE)
     image = models.CharField(max_length=255, blank=True, null=True)
     audioLink = models.CharField(max_length=255, blank=True, null=True)
     producerName = models.CharField(max_length=255, blank=True, null=True)
     narratorName = models.CharField(max_length=255, blank=True, null=True)
     recordingDate = models.DateTimeField(blank=True, null=True)
     recordingSource = models.CharField(max_length=255, blank=True, null=True)
-    poemEra = models.ForeignKey(Era, on_delete=models.CASCADE)
+    poemEra = models.CharField(max_length=255, blank=True, null=True)
     poemTypes = models.CharField(max_length=255, blank=True, null=True)
     poemTopics = models.CharField(max_length=255, blank=True, null=True)
     poemSpecialTags = models.CharField(max_length=255, blank=True, null=True)
@@ -111,20 +111,22 @@ class Poem(models.Model):
 
 class PoetAndPoem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    poemId = models.ForeignKey(Poem, on_delete=models.CASCADE)
-    poetId = models.ForeignKey(Poet, on_delete=models.CASCADE)
+    poem = models.ForeignKey(Poem, on_delete=models.CASCADE)
+    poet = models.ForeignKey(Poet, on_delete=models.CASCADE)
 
     class Meta:
         db_table = "poet_and_poem"
 
     def __str__(self):
-        return f"{self.poetId} - {self.poemId}"
+        return f"{self.poet} - {self.poem}"
 
 
 class PoemCollection(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     poemCollectionName = models.CharField(max_length=255)
     poemCollectionDescription = models.TextField()
+    filterExplicitLanguage = models.BooleanField(default=False)
+    filterAdultContent = models.BooleanField(default=False)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     deletedAt = models.DateTimeField(blank=True, null=True)
@@ -138,8 +140,8 @@ class PoemCollection(models.Model):
 
 class PoemCollectionAndPoem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    poemCollectionId = models.ForeignKey(PoemCollection, on_delete=models.CASCADE)
-    poemId = models.ForeignKey(Poem, on_delete=models.CASCADE)
+    poemCollection = models.ForeignKey(PoemCollection, on_delete=models.CASCADE)
+    poem = models.ForeignKey(Poem, on_delete=models.CASCADE)
     deletedAt = models.DateField(blank=True, null=True)
 
     class Meta:
@@ -179,14 +181,9 @@ class DirectoryType(models.Model):
 class BoothMaintainer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
-    phoneNumber = models.CharField(max_length=255)
-    email = models.EmailField()
     createdAt = models.DateTimeField(auto_now_add=True)
     deletedAt = models.DateTimeField(null=True, blank=True)
-    city = models.CharField(max_length=255)
-    state = models.CharField(max_length=255)
-    zip = models.CharField(max_length=255)
-
+    
     class Meta:
         db_table = "booth_maintainer"
 
@@ -196,18 +193,14 @@ class BoothMaintainer(models.Model):
 
 class Booth(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    boothName = models.CharField(max_length=255)
-    number = models.CharField(max_length=255, null=True, blank=True)
-    phoneType = models.ForeignKey(PhoneType, on_delete=models.CASCADE, null=True)
-    boothType = models.ForeignKey(
-        TelepoemBoothType, on_delete=models.CASCADE, null=True
-    )
-    directoryType = models.ForeignKey(
-        DirectoryType, on_delete=models.CASCADE, null=True
-    )
     boothMaintainer = models.ForeignKey(
         BoothMaintainer, on_delete=models.CASCADE, null=True
     )
+    boothName = models.CharField(max_length=255)
+    number = models.CharField(max_length=255, null=True, blank=True)
+    phoneType = models.CharField(max_length=255, null=True, blank=True)
+    boothType = models.CharField(max_length=255, null=True, blank=True)
+    directoryType = models.CharField(max_length=255, null=True, blank=True)
     directoryTabletSerialNumber = models.CharField(
         max_length=255, null=True, blank=True
     )
@@ -232,20 +225,6 @@ class Booth(models.Model):
 
     def __str__(self):
         return self.boothName
-
-
-class BoothLoggingHistory(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    boothId = models.ForeignKey(Booth, on_delete=models.CASCADE)
-    boothState = models.CharField(max_length=255)
-    loggingDateTime = models.DateTimeField()
-    active = models.BooleanField(default=True)
-
-    class Meta:
-        db_table = "booth_logging_history"
-
-    def __str__(self):
-        return str(self.id)
 
 
 class BoothAndPoemCollection(models.Model):
