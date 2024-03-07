@@ -18,6 +18,7 @@ from .models import (
     DirectoryType,
     Era,
 )
+import uuid
 
 # def read_excel_from_s3(file_name=None):
 #     aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
@@ -155,6 +156,7 @@ class PoemTableProcessor(TableProcessor):
             "types": "poemTypes",
             "specialTags": "poemSpecialTags",
             "topics": "poemTopics",
+            "isChildrenPoem": "isChildrensPoem",
         }
         table_df = table_df.rename(columns=column_mapping)
         columns_to_remove = [
@@ -169,7 +171,7 @@ class PoemTableProcessor(TableProcessor):
             .astype(object)
             .where(pd.notnull(table_df["recordingDate"]), None)
         )
-        table_df["isChildrenPoem"] = table_df["isChildrenPoem"].map(
+        table_df["isChildrensPoem"] = table_df["isChildrensPoem"].map(
             {"YES": True, "NO": False}
         )
         table_df["isAdultPoem"] = table_df["isAdultPoem"].map(
@@ -211,7 +213,7 @@ class Handler:
         if self.table_dfs is None:
             return []
         try:
-            poet_objs = []
+            poet_ids = []
             for index, poet in self.table_dfs.iterrows():
                 existing_poet = Poet.objects.filter(
                     legalFirstName=poet.legalFirstName,
@@ -250,8 +252,8 @@ class Handler:
                 else:
                     existing_poet = Poet.objects.create(**poet)
                     print("Poet Created")
-                poet_objs.append(existing_poet)
-            return poet_objs
+                poet_ids.append(existing_poet.id)
+            return poet_ids
         except Exception as e:
             print(f"Error: {e}")
             return None
@@ -260,63 +262,63 @@ class Handler:
         if self.table_dfs is None:
             return
         try:
-            poem_objs = []
+            poem_ids = []
             for index, poem in self.table_dfs.iterrows():
                 era = Era.objects.filter(name=poem["poemEra"]).first()
                 if not era:
                     era = Era.objects.create(name=poem["poemEra"])
                 poem["poemEra"] = era.id
                 if poem["poemTypes"]:
-                    poem_type_objs = []
+                    poem_type_ids = []
                     types_split = poem["poemTypes"].split(", ")
                     for name in types_split:
                         poem_type_obj = PoemType.objects.filter(name=name).first()
                         if not poem_type_obj:
                             poem_type_obj = PoemType.objects.create(name=name)
-                        poem_type_objs.append(poem_type_obj.id)
+                        poem_type_ids.append(poem_type_obj.poemTypeId)
                     poem["poemTypes"] = ", ".join(
-                        [str(poem_type_id) for poem_type_id in poem_type_objs]
+                        [str(poem_type_id) for poem_type_id in poem_type_ids]
                     )
 
                 if poem["poemTopics"]:
-                    poem_topic_objs = []
+                    poem_topic_ids = []
                     topics_split = poem["poemTopics"].split(", ")
                     for name in topics_split:
                         poem_topic_obj = PoemTopic.objects.filter(name=name).first()
                         if not poem_topic_obj:
                             poem_topic_obj = PoemTopic.objects.create(name=name)
-                        poem_topic_objs.append(poem_topic_obj.id)
+                        poem_topic_ids.append(poem_topic_obj.poemTopicId)
                     poem["poemTopics"] = ", ".join(
-                        [str(poem_topic_id) for poem_topic_id in poem_topic_objs]
+                        [str(poem_topic_id) for poem_topic_id in poem_topic_ids]
                     )
 
                 if poem["poemSpecialTags"]:
-                    special_tag_objs = []
+                    special_tag_ids = []
                     tags_split = poem["poemSpecialTags"].split(", ")
                     for name in tags_split:
                         special_tag_obj = SpecialTag.objects.filter(name=name).first()
                         if not special_tag_obj:
                             special_tag_obj = SpecialTag.objects.create(name=name)
-                        special_tag_objs.append(special_tag_obj.id)
+                        special_tag_ids.append(special_tag_obj.specialTagId)
                     poem["poemSpecialTags"] = ", ".join(
-                        [str(special_tag_id) for special_tag_id in special_tag_objs]
+                        [str(special_tag_id) for special_tag_id in special_tag_ids]
                     )
 
                 if poem["language"]:
-                    language_objs = []
+                    language_ids = []
                     languages_split = poem["language"].split("; ")
                     for name in languages_split:
                         language_obj = Language.objects.filter(name=name).first()
                         if not language_obj:
                             language_obj = Language.objects.create(name=name)
-                        language_objs.append(language_obj.id)
+                        language_ids.append(language_obj.languageId)
                     poem["language"] = ", ".join(
-                        [str(language_id) for language_id in language_objs]
+                        [str(language_id) for language_id in language_ids]
                     )
 
                 poem_obj = Poem.objects.filter(
                     title=poem["title"],
-                    poet=poem["poet"],
+                    poetId=poem["poetId"],
                 ).first()
                 if poem_obj:
                     poem_obj.producerName = poem["producerName"]
@@ -330,7 +332,7 @@ class Handler:
                     poem_obj.language = poem["language"]
                     poem_obj.active = poem["active"]
                     poem_obj.optionalLegal = poem["optionalLegal"]
-                    poem_obj.isChildrenPoem = poem["isChildrenPoem"]
+                    poem_obj.isChildrensPoem = poem["isChildrensPoem"]
                     poem_obj.isAdultPoem = poem["isAdultPoem"]
                     poem_obj.recordingDuration = poem["recordingDuration"]
                     poem_obj.telepoemNumber = poem["telepoemNumber"]
@@ -344,13 +346,15 @@ class Handler:
                     )
                     print("Poem Created")
                 poet_and_poem_obj = PoetAndPoem.objects.filter(
-                    poem=poem_obj, poet=poem["poet"]
+                    poemId=poem_obj.id, poetId=poem["poetId"]
                 ).first()
                 if not poet_and_poem_obj:
-                    PoetAndPoem.objects.create(poem=poem_obj, poet=poem["poet"])
+                    PoetAndPoem.objects.create(
+                        poemId=poem_obj.id, poetId=poem["poetId"]
+                    )
                     print("PoetAndPoem Created")
-                poem_objs.append(poem_obj)
-            return poem_objs
+                poem_ids.append(poem_obj.id)
+            return poem_ids
         except Exception as e:
             print(f"Error: {e}")
             return None
@@ -359,9 +363,9 @@ class Handler:
         if self.table_dfs is None:
             return
         try:
-            booth_objs_list = []
+            booth_ids_list = []
             for index, booth in self.table_dfs.iterrows():
-                booth_objs = []
+                booth_ids = []
                 booth_names = booth["boothName"].split("; ")
                 booth_numbers = str(booth["number"]).split("; ")
                 phone_types = booth["phoneType"].split("; ")
@@ -423,20 +427,21 @@ class Handler:
                                 name=booth["boothMaintainer"]
                             )
                             print("BoothMaintainer Created")
+                        booth_maintainer_id = booth_maintainer.id
                     else:
-                        booth_maintainer = None
+                        booth_maintainer_id = None
                     # Create Booth object with the extracted values
                     booth_obj = Booth.objects.filter(
-                        boothName=booth_name, boothMaintainer=booth_maintainer
+                        boothName=booth_name, boothMaintainerId=booth_maintainer_id
                     ).first()
                     if booth["zipCode"] == "":
                         booth["zipCode"] = None
                     if booth_obj:
                         booth_obj.number = booth_number
-                        booth_obj.phoneType = phone_type_obj.id
-                        booth_obj.boothType = telepoem_booth_type_obj.id
-                        booth_obj.directoryType = directoryType_obj.id
-                        booth_obj.boothMaintainer = booth_maintainer
+                        booth_obj.phoneTypeId = phone_type_obj.id
+                        booth_obj.boothTypeId = telepoem_booth_type_obj.id
+                        booth_obj.directoryTypeId = directoryType_obj.id
+                        booth_obj.boothMaintainerId = booth_maintainer_id
                         booth_obj.directoryTabletSerialNumber = booth[
                             "directoryTabletSerialNumber"
                         ]
@@ -457,10 +462,10 @@ class Handler:
                         booth_obj = Booth.objects.create(
                             boothName=booth_name,
                             number=booth_number,
-                            phoneType=phone_type_obj.id,
-                            boothType=telepoem_booth_type_obj.id,
-                            directoryType=directoryType_obj.id,
-                            boothMaintainer=booth_maintainer,
+                            phoneTypeId=phone_type_obj.id,
+                            boothTypeId=telepoem_booth_type_obj.id,
+                            directoryTypeId=directoryType_obj.id,
+                            boothMaintainerId=booth_maintainer_id,
                             directoryTabletSerialNumber=booth[
                                 "directoryTabletSerialNumber"
                             ],
@@ -477,9 +482,9 @@ class Handler:
                             deviceInfo=booth["deviceInfo"],
                         )
                         print("Booth Created")
-                    booth_objs.append(booth_obj)
-                booth_objs_list.append(booth_objs)
-            return booth_objs_list
+                    booth_ids.append(booth_obj.id)
+                booth_ids_list.append(booth_ids)
+            return booth_ids_list
         except Exception as e:
             print(f"Error: {e}")
             return None
@@ -517,26 +522,26 @@ class Handler:
                         )
                         print("Poem Collection created")
                     poem_collection_and_poem_obj = PoemCollectionAndPoem.objects.filter(
-                        poemCollection=poem_collection_obj,
-                        poem=poemcollection["poem"],
+                        poemCollectionId=poem_collection_obj.id,
+                        poemId=poemcollection["poemId"],
                     ).first()
                     if not poem_collection_and_poem_obj:
                         PoemCollectionAndPoem.objects.create(
-                            poemCollection=poem_collection_obj,
-                            poem=poemcollection["poem"],
+                            poemCollectionId=poem_collection_obj.id,
+                            poemId=poemcollection["poemId"],
                         )
                         print("Poem Collection and Poem created")
-                    for booth in poemcollection["booth"]:
+                    for booth in poemcollection["boothId"]:
                         booth_and_poem_collection_obj = (
                             BoothAndPoemCollection.objects.filter(
-                                booth=booth,
-                                poemCollection=poem_collection_obj,
+                                boothId=booth,
+                                poemCollectionId=poem_collection_obj.id,
                             ).first()
                         )
                         if not booth_and_poem_collection_obj:
                             BoothAndPoemCollection.objects.create(
-                                booth=booth,
-                                poemCollection=poem_collection_obj,
+                                boothId=booth,
+                                poemCollectionId=poem_collection_obj.id,
                             )
                             print(f"Booth and Peom Collection created")
         except Exception as e:
