@@ -1,5 +1,10 @@
+import io
+import os
+import traceback
 import pandas as pd
 from enum import Enum
+
+from conf.settings import DEBUG
 from .models import (
     PhoneType,
     PoemType,
@@ -18,28 +23,47 @@ from .models import (
     DirectoryType,
     Era,
 )
-import uuid
+import boto3
 
-# def read_excel_from_s3(file_name=None):
-#     aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
-#     aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
-#     bucket_name = os.getenv('BUCKET_NAME')
 
-#     if not all([aws_access_key_id, aws_secret_access_key, bucket_name, file_name]):
-#         raise ValueError("AWS credentials or S3 bucket/file information not provided.")
-
-#     s3 = boto3.client('s3',
-#                       aws_access_key_id=aws_access_key_id,
-#                       aws_secret_access_key=aws_secret_access_key)
-#     try:
-#         obj = s3.get_object(Bucket=bucket_name, Key=file_name)
-#         excel_data = pd.read_excel(io.BytesIO(obj['Body'].read()), sheet_name=None,
-#                                    engine='openpyxl')  # Read all sheets into a dictionary
-#         return excel_data
-#     except FileNotFoundError:
-#         raise RuntimeError("The specified file was not found on S3.")
-#     except Exception as e:
-#         raise RuntimeError(f"Failed to read Excel file from S3: {str(e)}\n{traceback.format_exc()}")
+def get_excel_file(file_name=None):
+    if DEBUG:
+        file = f"xlx_files/{file_name}"
+        return file
+    else:
+        try:
+            boto3_session = boto3.Session()
+            credentials = boto3_session.get_credentials()
+            if not credentials:
+                print("No credentials found. Using environment variables.")
+                aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
+                aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+                if not all(
+                    [aws_access_key_id, aws_secret_access_key, bucket_name, file_name]
+                ):
+                    raise ValueError(
+                        "AWS credentials or S3 bucket/file information not provided."
+                    )
+                s3 = boto3.client(
+                    "s3",
+                    aws_access_key_id=aws_access_key_id,
+                    aws_secret_access_key=aws_secret_access_key,
+                )
+            else:
+                aws_access_key_id = credentials.access_key
+                aws_secret_access_key = credentials.secret_key
+                s3 = boto3_session.client("s3")
+            bucket_name = os.getenv("BUCKET_NAME")
+            print(f"Bucket Name: {bucket_name}")
+            obj = s3.get_object(Bucket=bucket_name, Key=file_name)
+            excel_data = io.BytesIO(obj["Body"].read())
+            return excel_data
+        except FileNotFoundError:
+            raise RuntimeError("The specified file was not found on S3.")
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to read Excel file from S3: {str(e)}\n{traceback.format_exc()}"
+            )
 
 
 class TableProcessor:
@@ -256,7 +280,7 @@ class Handler:
             return poet_ids
         except Exception as e:
             print(f"Error: {e}")
-            return None
+            raise e
 
     def poems_handler(self):
         if self.table_dfs is None:
@@ -357,7 +381,7 @@ class Handler:
             return poem_ids
         except Exception as e:
             print(f"Error: {e}")
-            return None
+            raise e
 
     def booths_handler(self):
         if self.table_dfs is None:
@@ -487,7 +511,7 @@ class Handler:
             return booth_ids_list
         except Exception as e:
             print(f"Error: {e}")
-            return None
+            raise e
 
     def poem_collections_handler(self):
         if self.table_dfs is None:
@@ -546,4 +570,4 @@ class Handler:
                             print(f"Booth and Peom Collection created")
         except Exception as e:
             print(f"Error: {e}")
-            return None
+            raise e

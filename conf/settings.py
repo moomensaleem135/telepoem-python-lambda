@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 import dj_database_url
 from dotenv import load_dotenv
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,7 +27,9 @@ load_dotenv()  # Load environment variables from .env file
 SECRET_KEY = "django-insecure-*52nx-i=@giy2pn(%!6lb+y-xo4(62gb2qs+$9st9%o#liz0s="
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+debug_str = os.environ.get("DEBUG", 'False')
+DEBUG = debug_str.lower() in ["true", "1", "yes"]
+
 
 ALLOWED_HOSTS = ["*"]
 
