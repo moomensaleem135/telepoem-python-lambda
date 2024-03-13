@@ -139,6 +139,9 @@ class TableName(Enum):
 
 class PoetTableProcessor(TableProcessor):
     def populate_poet_table_according_to_db(table_df):
+        for col in table_df.columns:
+            if table_df[col] is str:
+                table_df[col] = table_df[col].str.strip()
         table_df["legalLastName"], table_df["legalFirstName"] = zip(
             *table_df["legalName"].apply(
                 lambda x: (
@@ -174,6 +177,9 @@ class PoetTableProcessor(TableProcessor):
 
 class PoemTableProcessor(TableProcessor):
     def populate_poem_table_according_to_db(table_df):
+        for col in table_df.columns:
+            if table_df[col] is str:
+                table_df[col] = table_df[col].str.strip()
         column_mapping = {
             "status": "active",
             "era": "poemEra",
@@ -206,6 +212,9 @@ class PoemTableProcessor(TableProcessor):
 
 class PoemCollectionTableProcessor(TableProcessor):
     def populate_poemcollection_table_according_to_db(table_df):
+        for col in table_df.columns:
+            if table_df[col] is str:
+                table_df[col] = table_df[col].str.strip()
         column_mapping = {
             "description": "poemCollectionDescription",
         }
@@ -215,6 +224,9 @@ class PoemCollectionTableProcessor(TableProcessor):
 
 class BoothTableProcessor(TableProcessor):
     def populate_booth_table_according_to_db(table_df):
+        for col in table_df.columns:
+            if table_df[col] is str:
+                table_df[col] = table_df[col].str.strip()
         column_mapping = {
             "boothNumber": "number",
             "boothMaintainerName": "boothMaintainer",
@@ -341,10 +353,10 @@ class Handler:
                     )
 
                 poem_obj = Poem.objects.filter(
-                    title=poem["title"],
-                    poetId=poem["poetId"],
+                    telepoemNumber=poem["telepoemNumber"]
                 ).first()
                 if poem_obj:
+                    poem_obj.title = poem["title"]
                     poem_obj.producerName = poem["producerName"]
                     poem_obj.narratorName = poem["narratorName"]
                     poem_obj.recordingDate = poem["recordingDate"]
