@@ -115,8 +115,7 @@ class TableProcessor:
             table_data,
             columns=columns[table_info["starting_index"] : table_info["ending_index"]],
         )
-        if "tableSeperator" in table_df.columns:
-            table_df = table_df.drop(columns="tableSeperator")
+        table_df = table_df.drop(columns="tableSeperator", errors="ignore")
         table_df = table_df.fillna("")
         if table_df.empty:
             return None
@@ -139,9 +138,6 @@ class TableName(Enum):
 
 class PoetTableProcessor(TableProcessor):
     def populate_poet_table_according_to_db(table_df):
-        for col in table_df.columns:
-            if table_df[col] is str:
-                table_df[col] = table_df[col].str.strip()
         table_df["legalLastName"], table_df["legalFirstName"] = zip(
             *table_df["legalName"].apply(
                 lambda x: (
@@ -169,17 +165,17 @@ class PoetTableProcessor(TableProcessor):
             "picCredits": "photoCredit",
         }
         table_df = table_df.rename(columns=column_mapping)
-
         columns_to_remove = ["legalName", "creditedName", "additionalPoetsName"]
         table_df = table_df.drop(columns=columns_to_remove, errors="ignore")
+        table_df["creditedLastName"], table_df["creditedFirstName"] = (
+            table_df["creditedLastName"].str.strip(),
+            table_df["creditedFirstName"].str.strip(),
+        )
         return table_df
 
 
 class PoemTableProcessor(TableProcessor):
     def populate_poem_table_according_to_db(table_df):
-        for col in table_df.columns:
-            if table_df[col] is str:
-                table_df[col] = table_df[col].str.strip()
         column_mapping = {
             "status": "active",
             "era": "poemEra",
@@ -207,14 +203,12 @@ class PoemTableProcessor(TableProcessor):
         table_df["isAdultPoem"] = table_df["isAdultPoem"].map(
             {"YES": True, "NO": False}
         )
+        table_df["telepoemNumber"] = table_df["telepoemNumber"].str.strip()
         return table_df
 
 
 class PoemCollectionTableProcessor(TableProcessor):
     def populate_poemcollection_table_according_to_db(table_df):
-        for col in table_df.columns:
-            if table_df[col] is str:
-                table_df[col] = table_df[col].str.strip()
         column_mapping = {
             "description": "poemCollectionDescription",
         }
@@ -224,12 +218,9 @@ class PoemCollectionTableProcessor(TableProcessor):
 
 class BoothTableProcessor(TableProcessor):
     def populate_booth_table_according_to_db(table_df):
-        for col in table_df.columns:
-            if table_df[col] is str:
-                table_df[col] = table_df[col].str.strip()
         column_mapping = {
             "boothNumber": "number",
-            "boothMaintainerName": "boothMaintainer",
+            "boothMaintainerName": "maintainerName",
             "address": "physicalAddress",
             "isAdaAccessible": "isADAAccessible",
         }
@@ -252,8 +243,8 @@ class Handler:
             poet_ids = []
             for index, poet in self.table_dfs.iterrows():
                 existing_poet = Poet.objects.filter(
-                    legalFirstName=poet.legalFirstName,
-                    legalLastName=poet.legalLastName,
+                    creditedFirstName=poet.creditedFirstName,
+                    creditedLastName=poet.creditedLastName,
                 )
                 if existing_poet.exists():
                     existing_poet = existing_poet.first()
@@ -454,21 +445,21 @@ class Handler:
                         )
                         print("DirectoryType Created")
 
-                    if booth["boothMaintainer"]:
+                    if booth["maintainerName"]:
                         booth_maintainer = BoothMaintainer.objects.filter(
-                            name=booth["boothMaintainer"]
+                            name=booth["maintainerName"]
                         ).first()
                         if not booth_maintainer:
                             booth_maintainer = BoothMaintainer.objects.create(
-                                name=booth["boothMaintainer"]
+                                name=booth["maintainerName"]
                             )
                             print("BoothMaintainer Created")
-                        booth_maintainer_id = booth_maintainer.id
+                        maintainerName = booth_maintainer.name
                     else:
-                        booth_maintainer_id = None
+                        maintainerName = None
                     # Create Booth object with the extracted values
                     booth_obj = Booth.objects.filter(
-                        boothName=booth_name, boothMaintainerId=booth_maintainer_id
+                        boothName=booth_name, maintainerName=maintainerName
                     ).first()
                     if booth["zipCode"] == "":
                         booth["zipCode"] = None
@@ -477,7 +468,7 @@ class Handler:
                         booth_obj.phoneTypeId = phone_type_obj.id
                         booth_obj.boothTypeId = telepoem_booth_type_obj.id
                         booth_obj.directoryTypeId = directoryType_obj.id
-                        booth_obj.boothMaintainerId = booth_maintainer_id
+                        booth_obj.maintainerName = maintainerName
                         booth_obj.directoryTabletSerialNumber = booth[
                             "directoryTabletSerialNumber"
                         ]
@@ -501,7 +492,7 @@ class Handler:
                             phoneTypeId=phone_type_obj.id,
                             boothTypeId=telepoem_booth_type_obj.id,
                             directoryTypeId=directoryType_obj.id,
-                            boothMaintainerId=booth_maintainer_id,
+                            maintainerName=maintainerName,
                             directoryTabletSerialNumber=booth[
                                 "directoryTabletSerialNumber"
                             ],
