@@ -31,6 +31,7 @@ def get_excel_file(file_name=None):
         file = f"xlx_files/{file_name}"
         return file
     else:
+        file_name = f"bulkupload/{file_name}"
         try:
             boto3_session = boto3.Session()
             credentials = boto3_session.get_credentials()
