@@ -218,10 +218,11 @@ class PoemTableProcessor(TableProcessor):
         )
         table_df["telepoemNumber"] = (
             table_df["telepoemNumber"]
-            .str.replace(" ", "")
             .str.replace("(", "")
             .str.replace(")", "")
             .str.replace("-", "")
+            .str.replace(" ", "")
+            .str.replace("\xa0", "")
             .str.strip()
         )
         table_df["telepoemNumber"] = table_df["telepoemNumber"].fillna("")
