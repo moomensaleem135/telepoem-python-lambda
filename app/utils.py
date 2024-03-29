@@ -141,12 +141,13 @@ class PoetTableProcessor(TableProcessor):
     def populate_poet_table_according_to_db(table_df):
         table_df["legalLastName"], table_df["legalFirstName"] = zip(
             *table_df["legalName"].apply(
-                lambda x: (
-                    ["", x.replace("(Unknown), ", "")]
-                    if "(Unknown)" in x
-                    else x.split(", ", 1)
-                )
+                lambda x: (x.split(", ", 1) if ", " in x else ("", x))
             )
+        )
+
+        # Replace "(Unknown)" with empty string in 'legalFirstName'
+        table_df["legalFirstName"] = table_df["legalFirstName"].str.replace(
+            "(Unknown), ", ""
         )
 
         table_df["creditedLastName"], table_df["creditedFirstName"] = zip(
@@ -191,20 +192,39 @@ class PoemTableProcessor(TableProcessor):
             "telepoemPublicationCollection(Poem Collection)",
         ]
         table_df = table_df.drop(columns=columns_to_remove, errors="ignore")
-        table_df["active"] = table_df["active"].map({"Active": True, "Inactive": False})
+        activeMapping = {
+            key.lower(): value
+            for key, value in {"Active": True, "Inactive": False}.items()
+        }
+        table_df["active"] = table_df["active"].str.lower().map(activeMapping)
+        table_df["active"].fillna(False, inplace=True)
         table_df["recordingDate"] = (
             table_df["recordingDate"]
             .fillna(pd.NaT)
             .astype(object)
             .where(pd.notnull(table_df["recordingDate"]), None)
         )
-        table_df["isChildrensPoem"] = table_df["isChildrensPoem"].map(
-            {"YES": True, "NO": False}
+        isChildrensPoemMapping = {
+            key.lower(): value for key, value in {"YES": True, "NO": False}.items()
+        }
+        table_df["isChildrensPoem"] = (
+            table_df["isChildrensPoem"].str.lower().map(isChildrensPoemMapping)
         )
-        table_df["isAdultPoem"] = table_df["isAdultPoem"].map(
-            {"YES": True, "NO": False}
+        isAdultPoemMapping = {
+            key.lower(): value for key, value in {"YES": True, "NO": False}.items()
+        }
+        table_df["isAdultPoem"] = (
+            table_df["isAdultPoem"].str.lower().map(isAdultPoemMapping)
         )
-        table_df["telepoemNumber"] = table_df["telepoemNumber"].str.strip()
+        table_df["telepoemNumber"] = (
+            table_df["telepoemNumber"]
+            .str.replace(" ", "")
+            .str.replace("(", "")
+            .str.replace(")", "")
+            .str.replace("-", "")
+            .str.strip()
+        )
+        table_df["telepoemNumber"] = table_df["telepoemNumber"].fillna("")
         return table_df
 
 
@@ -226,7 +246,10 @@ class BoothTableProcessor(TableProcessor):
             "isAdaAccessible": "isADAAccessible",
         }
         table_df = table_df.rename(columns=column_mapping)
-        table_df["active"] = table_df["active"].map({"YES": True, "NO": False})
+        mapping = {
+            key.lower(): value for key, value in {"YES": True, "NO": False}.items()
+        }
+        table_df["active"] = table_df["active"].str.lower().map(mapping)
         table_df["isADAAccessible"] = table_df["isADAAccessible"].map(
             {"YES": True, "NO": False}
         )
