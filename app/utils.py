@@ -2,6 +2,7 @@ import io
 import os
 import traceback
 import pandas as pd
+import numpy as np
 from enum import Enum
 
 from conf.settings import DEBUG
@@ -26,6 +27,57 @@ from .models import (
 import boto3
 
 
+class S3:
+    def __init__(self, bucket_name):
+        self.bucket_name = bucket_name
+
+    def get_s3_client(self):
+        boto3_session = boto3.Session()
+        credentials = boto3_session.get_credentials()
+        if not credentials:
+            print("No credentials found. Using environment variables.")
+            aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
+            aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+            if not all([aws_access_key_id, aws_secret_access_key, self.bucket_name]):
+                raise ValueError(
+                    "AWS credentials or S3 bucket/file information not provided."
+                )
+            s3 = boto3.client(
+                "s3",
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key,
+            )
+        else:
+            aws_access_key_id = credentials.access_key
+            aws_secret_access_key = credentials.secret_key
+            s3 = boto3_session.client("s3")
+        return s3
+
+    def get_audio_links(self):
+        s3_client = self.get_s3_client()
+        keys = []
+        response = s3_client.list_objects_v2(
+            Bucket=self.bucket_name,
+            MaxKeys=1000,
+        )
+        # Process the initial set of objects
+        for obj in response.get("Contents", []):
+            keys.append(obj["Key"])
+
+        # Paginate through the results if there are more objects
+        while response.get("NextContinuationToken"):
+            response = s3_client.list_objects_v2(
+                Bucket=self.bucket_name,
+                ContinuationToken=response["NextContinuationToken"],
+                MaxKeys=1000,
+            )
+            # Process the next set of objects
+            for obj in response.get("Contents", []):
+                keys.append(obj["Key"])
+
+        return keys
+
+
 def get_excel_file(file_name=None):
     if DEBUG:
         file = f"xlx_files/{file_name}"
@@ -33,29 +85,8 @@ def get_excel_file(file_name=None):
     else:
         file_name = f"bulkupload/{file_name}"
         try:
-            boto3_session = boto3.Session()
-            credentials = boto3_session.get_credentials()
-            if not credentials:
-                print("No credentials found. Using environment variables.")
-                aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
-                aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-                if not all(
-                    [aws_access_key_id, aws_secret_access_key, bucket_name, file_name]
-                ):
-                    raise ValueError(
-                        "AWS credentials or S3 bucket/file information not provided."
-                    )
-                s3 = boto3.client(
-                    "s3",
-                    aws_access_key_id=aws_access_key_id,
-                    aws_secret_access_key=aws_secret_access_key,
-                )
-            else:
-                aws_access_key_id = credentials.access_key
-                aws_secret_access_key = credentials.secret_key
-                s3 = boto3_session.client("s3")
             bucket_name = os.getenv("BUCKET_NAME")
-            print(f"Bucket Name: {bucket_name}")
+            s3 = S3(bucket_name).get_s3_client()
             obj = s3.get_object(Bucket=bucket_name, Key=file_name)
             excel_data = io.BytesIO(obj["Body"].read())
             return excel_data
@@ -118,6 +149,7 @@ class TableProcessor:
         )
         table_df = table_df.drop(columns="tableSeperator", errors="ignore")
         table_df = table_df.fillna("")
+        table_df = table_df.replace({np.nan: None, pd.NaT: None})
         if table_df.empty:
             return None
         else:
@@ -155,11 +187,16 @@ class PoetTableProcessor(TableProcessor):
                 lambda x: (x.split(", ", 1) if len(x.split(", ")) > 1 else ["", x])
             )
         )
-        table_df["status"] = table_df["status"].map(
-            {"ACTIVE": True, "INACTIVE": False, "": False}
+        status_mapping = {key.lower(): value for key, value in {"Active": True}.items()}
+        table_df["status"] = (
+            table_df["status"].str.lower().map(lambda x: status_mapping.get(x, False))
         )
-        table_df["isLaureate"] = table_df["isLaureate"].map(
-            {"YES": True, "NO": False, "": False}
+
+        isLaureateMapping = {key.lower(): value for key, value in {"YES": True}.items()}
+        table_df["isLaureate"] = (
+            table_df["isLaureate"]
+            .str.lower()
+            .map(lambda x: isLaureateMapping.get(x, False))
         )
         column_mapping = {
             "phoneNumber": "phoneNum",
@@ -177,6 +214,7 @@ class PoetTableProcessor(TableProcessor):
 
 
 class PoemTableProcessor(TableProcessor):
+
     def populate_poem_table_according_to_db(table_df):
         column_mapping = {
             "status": "active",
@@ -192,30 +230,28 @@ class PoemTableProcessor(TableProcessor):
             "telepoemPublicationCollection(Poem Collection)",
         ]
         table_df = table_df.drop(columns=columns_to_remove, errors="ignore")
-        activeMapping = {
-            key.lower(): value
-            for key, value in {"Active": True, "Inactive": False}.items()
-        }
-        table_df["active"] = table_df["active"].str.lower().map(activeMapping)
-        table_df["active"].fillna(False, inplace=True)
-        table_df["recordingDate"] = (
-            table_df["recordingDate"]
-            .fillna(pd.NaT)
-            .astype(object)
-            .where(pd.notnull(table_df["recordingDate"]), None)
+        activeMapping = {key.lower(): value for key, value in {"Active": True}.items()}
+        table_df["active"] = (
+            table_df["active"].str.lower().map(lambda x: activeMapping.get(x, False))
         )
+
         isChildrensPoemMapping = {
-            key.lower(): value for key, value in {"YES": True, "NO": False}.items()
+            key.lower(): value for key, value in {"YES": True}.items()
         }
         table_df["isChildrensPoem"] = (
-            table_df["isChildrensPoem"].str.lower().map(isChildrensPoemMapping)
+            table_df["isChildrensPoem"]
+            .str.lower()
+            .map(lambda x: isChildrensPoemMapping.get(x, False))
         )
         isAdultPoemMapping = {
-            key.lower(): value for key, value in {"YES": True, "NO": False}.items()
+            key.lower(): value for key, value in {"YES": True}.items()
         }
         table_df["isAdultPoem"] = (
-            table_df["isAdultPoem"].str.lower().map(isAdultPoemMapping)
+            table_df["isAdultPoem"]
+            .str.lower()
+            .map(lambda x: isAdultPoemMapping.get(x, False))
         )
+        table_df["telepoemNumber"] = table_df["telepoemNumber"].astype(str)
         table_df["telepoemNumber"] = (
             table_df["telepoemNumber"]
             .str.replace("(", "")
@@ -225,7 +261,6 @@ class PoemTableProcessor(TableProcessor):
             .str.replace("\xa0", "")
             .str.strip()
         )
-        table_df["telepoemNumber"] = table_df["telepoemNumber"].fillna("")
         return table_df
 
 
@@ -247,12 +282,17 @@ class BoothTableProcessor(TableProcessor):
             "isAdaAccessible": "isADAAccessible",
         }
         table_df = table_df.rename(columns=column_mapping)
-        mapping = {
-            key.lower(): value for key, value in {"YES": True, "NO": False}.items()
+        activeMapping = {key.lower(): value for key, value in {"YES": True}.items()}
+        table_df["active"] = (
+            table_df["active"].str.lower().map(lambda x: activeMapping.get(x, False))
+        )
+        isADAAccessibleMapping = {
+            key.lower(): value for key, value in {"YES": True}.items()
         }
-        table_df["active"] = table_df["active"].str.lower().map(mapping)
-        table_df["isADAAccessible"] = table_df["isADAAccessible"].map(
-            {"YES": True, "NO": False}
+        table_df["isADAAccessible"] = (
+            table_df["isADAAccessible"]
+            .str.lower()
+            .map(lambda x: isADAAccessibleMapping.get(x, False))
         )
         return table_df
 
@@ -315,6 +355,9 @@ class Handler:
             return
         try:
             poem_ids = []
+            print("Getting mp3 files from s3")
+            bucket_name = "dataimportcsv"
+            s3_audio_links = S3(bucket_name).get_audio_links()
             for index, poem in self.table_dfs.iterrows():
                 era = Era.objects.filter(name=poem["poemEra"]).first()
                 if not era:
@@ -367,7 +410,15 @@ class Handler:
                     poem["language"] = ", ".join(
                         [str(language_id) for language_id in language_ids]
                     )
-
+                file_key = f'Poem recordings/{poem["telepoemNumber"]}.mp3'
+                for link in s3_audio_links:
+                    if link == file_key:
+                        poem["audioLink"] = (
+                            f"https://{bucket_name}.s3.amazonaws.com/{link}"
+                        )
+                        break
+                    else:
+                        poem["audioLink"] = None
                 poem_obj = Poem.objects.filter(
                     telepoemNumber=poem["telepoemNumber"]
                 ).first()
@@ -390,6 +441,7 @@ class Handler:
                     poem_obj.telepoemNumber = poem["telepoemNumber"]
                     poem_obj.copyRights = poem["copyRights"]
                     poem_obj.poemText = poem["poemText"]
+                    poem_obj.audioLink = poem["audioLink"]
                     poem_obj.save()
                     print("Poem Updated")
                 else:

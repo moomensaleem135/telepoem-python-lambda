@@ -108,6 +108,11 @@ class Poem(models.Model):
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
 
+    def save(self, *args, **kwargs):
+        if self.telepoemNumber == "0":
+            self.telepoemNumber = "0"
+        super(Poem, self).save(*args, **kwargs)
+
     class Meta:
         db_table = "poem"
 

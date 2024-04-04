@@ -16,12 +16,23 @@
             "autoStartBrowser": false
         },
         {
-            "name": "Python Debugger Command: Django",
+            "name": "Run Process Command: Django",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}\\manage.py",
             "args": [
                 "run_process"
+            ],
+            "django": true,
+            "autoStartBrowser": false
+        },
+        {
+            "name": "Run Add Links Command: Django",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}\\manage.py",
+            "args": [
+                "add_links"
             ],
             "django": true,
             "autoStartBrowser": false
