@@ -371,7 +371,7 @@ class Handler:
                         if not poem_type_obj:
                             poem_type_obj = PoemType.objects.create(name=name)
                         poem_type_ids.append(poem_type_obj.poemTypeId)
-                    poem["poemTypes"] = ", ".join(
+                    poem["poemTypes"] = ",".join(
                         [str(poem_type_id) for poem_type_id in poem_type_ids]
                     )
 
@@ -383,7 +383,7 @@ class Handler:
                         if not poem_topic_obj:
                             poem_topic_obj = PoemTopic.objects.create(name=name)
                         poem_topic_ids.append(poem_topic_obj.poemTopicId)
-                    poem["poemTopics"] = ", ".join(
+                    poem["poemTopics"] = ",".join(
                         [str(poem_topic_id) for poem_topic_id in poem_topic_ids]
                     )
 
@@ -395,7 +395,7 @@ class Handler:
                         if not special_tag_obj:
                             special_tag_obj = SpecialTag.objects.create(name=name)
                         special_tag_ids.append(special_tag_obj.specialTagId)
-                    poem["poemSpecialTags"] = ", ".join(
+                    poem["poemSpecialTags"] = ",".join(
                         [str(special_tag_id) for special_tag_id in special_tag_ids]
                     )
 
@@ -407,7 +407,7 @@ class Handler:
                         if not language_obj:
                             language_obj = Language.objects.create(name=name)
                         language_ids.append(language_obj.languageId)
-                    poem["language"] = ", ".join(
+                    poem["language"] = ",".join(
                         [str(language_id) for language_id in language_ids]
                     )
                 file_key = f'Poem recordings/{poem["telepoemNumber"]}.mp3'
