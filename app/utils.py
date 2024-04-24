@@ -422,8 +422,11 @@ class Handler:
                 poem_obj = Poem.objects.filter(
                     telepoemNumber=poem["telepoemNumber"]
                 ).first()
+                if poem["recordingDate"] == "":
+                    poem["recordingDate"] = None
                 if poem_obj:
                     poem_obj.title = poem["title"]
+                    poem_obj.poetId = poem["poetId"]
                     poem_obj.producerName = poem["producerName"]
                     poem_obj.narratorName = poem["narratorName"]
                     poem_obj.recordingDate = poem["recordingDate"]
