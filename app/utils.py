@@ -356,7 +356,7 @@ class Handler:
         try:
             poem_ids = []
             print("Getting mp3 files from s3")
-            bucket_name = "dataimportcsv"
+            bucket_name = "telepoem"
             s3_audio_links = S3(bucket_name).get_audio_links()
             for index, poem in self.table_dfs.iterrows():
                 era = Era.objects.filter(name=poem["poemEra"]).first()
@@ -410,7 +410,7 @@ class Handler:
                     poem["language"] = ",".join(
                         [str(language_id) for language_id in language_ids]
                     )
-                file_key = f'Poem recordings/{poem["telepoemNumber"]}.mp3'
+                file_key = f'poem/audio/{poem["telepoemNumber"]}.mp3'
                 for link in s3_audio_links:
                     if link == file_key:
                         poem["audioLink"] = (
