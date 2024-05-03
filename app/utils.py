@@ -4,7 +4,7 @@ import traceback
 import pandas as pd
 import numpy as np
 from enum import Enum
-
+from datetime import timedelta
 from conf.settings import DEBUG
 from .models import (
     PhoneType,
@@ -261,6 +261,13 @@ class PoemTableProcessor(TableProcessor):
             .str.replace("\xa0", "")
             .str.strip()
         )
+        table_df["recordingDuration"] = table_df["recordingDuration"].astype(str)
+        table_df["recordingDuration"] = (
+            table_df["recordingDuration"]
+            .str.replace(" ", "")
+            .str.replace("\xa0", "")
+            .str.strip()
+        )
         return table_df
 
 
@@ -424,6 +431,14 @@ class Handler:
                 ).first()
                 if poem["recordingDate"] == "":
                     poem["recordingDate"] = None
+                if poem["recordingDuration"] == "":
+                    poem["recordingDuration"] = None
+                else:
+                    duration = str(poem["recordingDuration"])
+                    if len(duration.split(":")) == 3:
+                        poem["recordingDuration"] = duration[:-3]
+                    else:
+                        poem["recordingDuration"] = duration
                 if poem_obj:
                     poem_obj.title = poem["title"]
                     poem_obj.poetId = poem["poetId"]
