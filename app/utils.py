@@ -390,9 +390,7 @@ class Handler:
                         if not poem_topic_obj:
                             poem_topic_obj = PoemTopic.objects.create(name=name)
                         poem_topic_ids.append(poem_topic_obj.poemTopicId)
-                    poem["poemTopics"] = ",".join(
-                        [str(poem_topic_id) for poem_topic_id in poem_topic_ids]
-                    )
+                    poem["poemTopics"] = "[" + ",".join([str(poem_topic_id) for poem_topic_id in poem_topic_ids]) + "]"
 
                 if poem["poemSpecialTags"]:
                     special_tag_ids = []
