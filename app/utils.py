@@ -4,7 +4,6 @@ import traceback
 import pandas as pd
 import numpy as np
 from enum import Enum
-from datetime import timedelta
 from conf.settings import DEBUG
 from .models import (
     PhoneType,
@@ -18,8 +17,6 @@ from .models import (
     Booth,
     BoothAndPoemCollection,
     BoothMaintainer,
-    TelepoemBoothType,
-    SpecialTag,
     Language,
     DirectoryType,
     Era,
@@ -220,7 +217,7 @@ class PoemTableProcessor(TableProcessor):
             "status": "active",
             "era": "poemEra",
             "types": "poemTypes",
-            "specialTags": "poemSpecialTags",
+            # "specialTags": "poemSpecialTags",
             "topics": "poemTopics",
             "isChildrenPoem": "isChildrensPoem",
         }
@@ -392,17 +389,17 @@ class Handler:
                         poem_topic_ids.append(poem_topic_obj.poemTopicId)
                     poem["poemTopics"] = "[" + ",".join([str(poem_topic_id) for poem_topic_id in poem_topic_ids]) + "]"
 
-                if poem["poemSpecialTags"]:
-                    special_tag_ids = []
-                    tags_split = poem["poemSpecialTags"].split(", ")
-                    for name in tags_split:
-                        special_tag_obj = SpecialTag.objects.filter(name=name).first()
-                        if not special_tag_obj:
-                            special_tag_obj = SpecialTag.objects.create(name=name)
-                        special_tag_ids.append(special_tag_obj.specialTagId)
-                    poem["poemSpecialTags"] = ",".join(
-                        [str(special_tag_id) for special_tag_id in special_tag_ids]
-                    )
+                # if poem["poemSpecialTags"]:
+                #     special_tag_ids = []
+                #     tags_split = poem["poemSpecialTags"].split(", ")
+                #     for name in tags_split:
+                #         special_tag_obj = SpecialTag.objects.filter(name=name).first()
+                #         if not special_tag_obj:
+                #             special_tag_obj = SpecialTag.objects.create(name=name)
+                #         special_tag_ids.append(special_tag_obj.specialTagId)
+                #     poem["poemSpecialTags"] = ",".join(
+                #         [str(special_tag_id) for special_tag_id in special_tag_ids]
+                #     )
 
                 if poem["language"]:
                     language_ids = []
@@ -447,10 +444,10 @@ class Handler:
                     poem_obj.poemEra = poem["poemEra"]
                     poem_obj.poemTypes = poem["poemTypes"]
                     poem_obj.poemTopics = poem["poemTopics"]
-                    poem_obj.poemSpecialTags = poem["poemSpecialTags"]
+                    # poem_obj.poemSpecialTags = poem["poemSpecialTags"]
                     poem_obj.language = poem["language"]
                     poem_obj.active = poem["active"]
-                    poem_obj.optionalLegal = poem["optionalLegal"]
+                    # poem_obj.optionalLegal = poem["optionalLegal"]
                     poem_obj.isChildrensPoem = poem["isChildrensPoem"]
                     poem_obj.isAdultPoem = poem["isAdultPoem"]
                     poem_obj.recordingDuration = poem["recordingDuration"]
@@ -489,14 +486,14 @@ class Handler:
                 booth_names = booth["boothName"].split("; ")
                 booth_numbers = str(booth["number"]).split("; ")
                 phone_types = booth["phoneType"].split("; ")
-                booth_types = booth["boothType"].split("; ")
+                # booth_types = booth["boothType"].split("; ")
 
                 # Check if the number of values in each column matches
                 num_booths = max(
                     len(booth_names),
                     len(booth_numbers),
                     len(phone_types),
-                    len(booth_types),
+                    # len(booth_types),
                 )
 
                 for i in range(num_booths):
@@ -511,23 +508,23 @@ class Handler:
                     phone_type = (
                         phone_types[i] if i < len(phone_types) else phone_types[-1]
                     )
-                    booth_type = (
-                        booth_types[i] if i < len(booth_types) else booth_types[-1]
-                    )
+                    # booth_type = (
+                    #     booth_types[i] if i < len(booth_types) else booth_types[-1]
+                    # )
 
                     phone_type_obj = PhoneType.objects.filter(name=phone_type).first()
                     if not phone_type_obj:
                         phone_type_obj = PhoneType.objects.create(name=phone_type)
                         print("PhoneType Created")
 
-                    telepoem_booth_type_obj = TelepoemBoothType.objects.filter(
-                        name=booth_type
-                    ).first()
-                    if not telepoem_booth_type_obj:
-                        telepoem_booth_type_obj = TelepoemBoothType.objects.create(
-                            name=booth_type
-                        )
-                        print("TelepoemBoothType Created")
+                    # telepoem_booth_type_obj = TelepoemBoothType.objects.filter(
+                    #     name=booth_type
+                    # ).first()
+                    # if not telepoem_booth_type_obj:
+                    #     telepoem_booth_type_obj = TelepoemBoothType.objects.create(
+                    #         name=booth_type
+                    #     )
+                    #     print("TelepoemBoothType Created")
 
                     directoryType_obj = DirectoryType.objects.filter(
                         name=booth["directoryType"]
@@ -559,12 +556,12 @@ class Handler:
                     if booth_obj:
                         booth_obj.number = booth_number
                         booth_obj.phoneTypeId = phone_type_obj.id
-                        booth_obj.boothTypeId = telepoem_booth_type_obj.id
+                        # booth_obj.boothTypeId = telepoem_booth_type_obj.id
                         booth_obj.directoryTypeId = directoryType_obj.id
                         booth_obj.maintainerName = maintainerName
-                        booth_obj.directoryTabletSerialNumber = booth[
-                            "directoryTabletSerialNumber"
-                        ]
+                        # booth_obj.directoryTabletSerialNumber = booth[
+                        #     "directoryTabletSerialNumber"
+                        # ]
                         booth_obj.physicalAddress = booth["physicalAddress"]
                         booth_obj.city = booth["city"]
                         booth_obj.state = booth["state"]
@@ -573,9 +570,9 @@ class Handler:
                         booth_obj.installationType = booth["installationType"]
                         booth_obj.active = booth["active"]
                         booth_obj.isADAAccessible = booth["isADAAccessible"]
-                        booth_obj.phoneSerialNumber = booth["phoneSerialNumber"]
-                        booth_obj.installationNotes = booth["installationNotes"]
-                        booth_obj.deviceInfo = booth["deviceInfo"]
+                        # booth_obj.phoneSerialNumber = booth["phoneSerialNumber"]
+                        # booth_obj.installationNotes = booth["installationNotes"]
+                        # booth_obj.deviceInfo = booth["deviceInfo"]
                         booth_obj.save()
                         print("Booth Updated")
                     else:
@@ -583,12 +580,12 @@ class Handler:
                             boothName=booth_name,
                             number=booth_number,
                             phoneTypeId=phone_type_obj.id,
-                            boothTypeId=telepoem_booth_type_obj.id,
+                            # boothTypeId=telepoem_booth_type_obj.id,
                             directoryTypeId=directoryType_obj.id,
                             maintainerName=maintainerName,
-                            directoryTabletSerialNumber=booth[
-                                "directoryTabletSerialNumber"
-                            ],
+                            # directoryTabletSerialNumber=booth[
+                            #     "directoryTabletSerialNumber"
+                            # ],
                             physicalAddress=booth["physicalAddress"],
                             city=booth["city"],
                             state=booth["state"],
@@ -597,9 +594,9 @@ class Handler:
                             installationType=booth["installationType"],
                             active=booth["active"],
                             isADAAccessible=booth["isADAAccessible"],
-                            phoneSerialNumber=booth["phoneSerialNumber"],
-                            installationNotes=booth["installationNotes"],
-                            deviceInfo=booth["deviceInfo"],
+                            # phoneSerialNumber=booth["phoneSerialNumber"],
+                            # installationNotes=booth["installationNotes"],
+                            # deviceInfo=booth["deviceInfo"],
                         )
                         print("Booth Created")
                     booth_ids.append(booth_obj.id)
